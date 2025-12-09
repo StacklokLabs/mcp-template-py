@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import os
-from typing import cast
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP

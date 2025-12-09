@@ -55,7 +55,8 @@ async def test_mcp_server_hello_tool() -> None:
 
             # Verify the response contains text
             text_contents = [item for item in result.content if hasattr(item, "text")]
-            assert any("Hello, Alice!" in item.text for item in text_contents), \
+            assert any("Hello, Alice!" in item.text for item in text_contents), (
                 f"Expected greeting not found in response: {[item.text for item in text_contents]}"
+            )
     except* (McpError, OSError, ConnectionError, ConnectError) as e:
         pytest.skip(f"MCP server is not available: {e}")
