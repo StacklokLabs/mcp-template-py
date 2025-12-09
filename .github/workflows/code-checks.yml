@@ -1,0 +1,20 @@
+# These set of workflows run on every pull request
+name: Code Checks
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [ main ]
+    
+jobs:
+  code_quality:
+    name: Code Quality
+    uses: ./.github/workflows/code-quality.yml
+  image_build:
+    name: Build Docker Image
+    uses: ./.github/workflows/image-build.yml
+    needs: code_quality

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch",
+      "WebSearch",
+      "Bash(uv run pytest:*)",
+      "Bash(task lint)",
+      "Bash(task format)",
+      "Bash(task typecheck)",
+      "Bash(task test)",
+      "Bash(task check)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(**/.env)"
+    ]
+  }
+}
