@@ -1,6 +1,12 @@
 # claude
 .claude/settings.local.json
 
+# Coverage reports
+.coverage
+bandit-report.json
+pip-audit-report.json
+sbom.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

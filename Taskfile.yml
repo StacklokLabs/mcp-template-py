@@ -43,6 +43,21 @@ tasks:
       - typecheck
       - test
 
+  security:
+    desc: Run security scanning
+    cmds:
+      - uv run bandit -r src/ -f json -o bandit-report.json || true
+      - uv run pip-audit --format=json --output=pip-audit-report.json || true
+    deps:
+      - install
+
+  sbom:
+    desc: Generate Software Bill of Materials (SBOM)
+    cmds:
+      - uv run cyclonedx-py environment --output-format json --output-file sbom.json
+    deps:
+      - install
+
   run:
     desc: Run the MCP server locally
     cmds:

@@ -9,12 +9,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_SYSTEM_PYTHON=1
 
-# Install system dependencies and uv
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install uv from Astral's GitHub Container Registry
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Add uv to PATH
 ENV PATH="/root/.local/bin:$PATH"

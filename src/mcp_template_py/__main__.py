@@ -2,13 +2,13 @@
 
 import asyncio
 import logging
-import os
+import structlog
 
-from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from mcp_template_py.settings import Settings
 
 
-def build_server() -> FastMCP:
+def build_server(logger: structlog.BoundLogger) -> FastMCP:
     """Build and configure the MCP server.
 
     Creates a FastMCP instance with an example tool.
@@ -27,23 +27,34 @@ def build_server() -> FastMCP:
         Returns:
             Greeting message
         """
+        logger.info("hello tool called", name=name)
         return f"Hello, {name}!"
 
     return mcp
 
 
 if __name__ == "__main__":
-    # Load environment variables from .env file
-    load_dotenv()
-
     # Configure logging
+    settings = Settings()
     logging.basicConfig(
         level=logging.DEBUG
-        if os.getenv("DEBUG", "").lower() in ("true", "1", "yes")
+        if settings.debug.lower() in ("true", "1", "yes")
         else logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+    )
+
     # Build and run the MCP server
-    server = build_server()
+    logger = structlog.get_logger()
+    logger.info("debug mode", debug=settings.debug)
+    server = build_server(logger)
     asyncio.run(server.run_streamable_http_async())
