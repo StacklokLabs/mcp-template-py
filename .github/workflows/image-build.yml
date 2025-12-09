@@ -26,4 +26,4 @@ jobs:
         push: false
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        tags: agent-mcp:latest  # Local tag for CI testing (not pushed to registry)
+        tags: mcp-template-py:latest  # Local tag for CI testing (not pushed to registry)

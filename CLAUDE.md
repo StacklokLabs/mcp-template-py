@@ -1,6 +1,6 @@
 ## Project
 
-The ToolHive Doc Chatbot is an agentic Discord and Slack chatbot that leverages the [toolhive-doc-mcp](https://github.com/Stackloklabs/toolhive-doc-mcp) MCP server to answer questions based on ToolHive documentation.
+A python MCP server template repository.
 
 ## Technical considerations
 - Use uv as package manager. `uv add <package>` for adding a package. `uv add <package> --dev` for development packages for linting and testing
@@ -18,18 +18,16 @@ The ToolHive Doc Chatbot is an agentic Discord and Slack chatbot that leverages 
 - Prefer using `uv run python -c "import this"` instead of `python -c "import this"`. This ensures that the correct python version and environment is used.
 
 ## Code Structure
-- The main chatbot code is located in `src/toolhive_doc_chatbot/`
-- The agent layer is implemented in `src/toolhive_doc_agent/`
+- The main module is located in `src/mcp_template_py/`.
 
 ## Implementation guidelines
 
 ### Product code
-- Use pydantic models for type safety at both the API layer and agent layer. Model fields should be well documented.
+- Use pydantic models for type safety, especially at API boundaries.
 - Use FastAPI for the API layer.
-- Use pydantic_ai for the agent implementation.
 - Elicit feedback or confirmation when deciding to use a new framework or library.
 
 ### Test code
 - Use pytest style tests, leveraging pytest-asyncio when appropriate.
 - Unit tests should be in a `tests/` folder co-located with the source code being tested. Unit tests should mock external dependencies.
-- Integration tests should be in `src/tests/integration` and should avoid mocking external dependencies. They can be skipped if requirements like configuration (e.g. model API keys) are missing.
+- Integration tests should be in `src/tests/integration` and should avoid mocking external dependencies. They can be skipped if requirements like configuration (e.g. API keys) are missing.

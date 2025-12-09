@@ -46,7 +46,7 @@ tasks:
   run:
     desc: Run the MCP server locally
     cmds:
-      - uv run python -m src.agent_mcp
+      - uv run python -m src.mcp_template_py
 
   compose:
     desc: Docker compose up

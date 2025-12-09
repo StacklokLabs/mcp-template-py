@@ -17,7 +17,7 @@ def build_server() -> FastMCP:
     Returns:
         Configured FastMCP server instance
     """
-    mcp = FastMCP("agent-mcp", host="127.0.0.1", port=8100)
+    mcp = FastMCP("agent-mcp", host="0.0.0.0", port=8100)
 
     @mcp.tool()
     async def hello(name: str) -> str:
