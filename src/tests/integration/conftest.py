@@ -1,4 +1,4 @@
-"""Shared test fixtures for integration and unit tests."""
+"""Shared test fixtures for integration tests."""
 
 import os
 from collections.abc import AsyncIterator

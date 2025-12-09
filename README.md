@@ -101,6 +101,8 @@ src/
 
 ## Testing
 
+**Note**: integration tests (`src/tests/integration`) require the MCP server is running (`task run` or `task compose`) and will be skipped if it is unreachable.
+
 ```bash
 # Run all tests
 task test
@@ -108,8 +110,6 @@ task test
 # Run with coverage
 uv run pytest --cov=src/mcp_template_py
 ```
-
-Integration tests connect to a running MCP server and verify tool functionality. They gracefully skip if the server is unavailable.
 
 ## License
 

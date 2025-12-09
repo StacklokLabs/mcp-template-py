@@ -4,7 +4,7 @@ import pytest
 from httpx import ConnectError
 from mcp.shared.exceptions import McpError
 
-from tests.conftest import get_mcp_client_session
+from tests.integration.conftest import get_mcp_client_session
 
 
 @pytest.mark.asyncio
