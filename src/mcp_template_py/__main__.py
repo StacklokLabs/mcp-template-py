@@ -37,9 +37,7 @@ if __name__ == "__main__":
     # Configure logging
     settings = Settings()
     logging.basicConfig(
-        level=logging.DEBUG
-        if settings.debug.lower() in ("true", "1", "yes")
-        else logging.INFO,
+        level=logging.DEBUG if settings.debug else logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 

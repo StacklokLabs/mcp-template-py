@@ -29,6 +29,9 @@ task install
 
 # Or without task:
 uv sync --dev --all-packages --group security
+
+# Copy .env (needed for `task compose` even if empty)
+cp .env.example .env
 ```
 
 ### Run the Server
