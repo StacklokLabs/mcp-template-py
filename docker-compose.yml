@@ -1,0 +1,11 @@
+services:
+  mcp-template-py:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcp-template-py:dev
+    ports:
+      - "8100:8100"
+    environment:
+      DEBUG: ${DEBUG:-false}
+    restart: unless-stopped
