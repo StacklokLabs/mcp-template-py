@@ -5,9 +5,9 @@ services:
       dockerfile: Dockerfile
     image: mcp-template-py:dev
     ports:
-      - "${MCP_PORT:-8100}:${MCP_PORT:-8100}"
+      - "${MCP_PORT:-8100}:8100"
     environment:
-      MCP_PORT: ${MCP_PORT:-8100}
+      MCP_PORT: 8100
       DEBUG: ${DEBUG:-false}
     restart: unless-stopped
     # Security settings for k8s compatibility
