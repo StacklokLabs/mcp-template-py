@@ -8,7 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp_template_py.settings import Settings
 
 
-def build_server(logger: structlog.BoundLogger) -> FastMCP:
+def build_server(settings: Settings, logger: structlog.BoundLogger) -> FastMCP:
     """Build and configure the MCP server.
 
     Creates a FastMCP instance with an example tool.
@@ -16,7 +16,7 @@ def build_server(logger: structlog.BoundLogger) -> FastMCP:
     Returns:
         Configured FastMCP server instance
     """
-    mcp = FastMCP("agent-mcp", host="0.0.0.0", port=8100)
+    mcp = FastMCP("agent-mcp", host="0.0.0.0", port=settings.mcp_port)
 
     @mcp.tool()
     async def hello(name: str) -> str:
@@ -54,5 +54,5 @@ if __name__ == "__main__":
     # Build and run the MCP server
     logger = structlog.get_logger()
     logger.info("debug mode", debug=settings.debug)
-    server = build_server(logger)
+    server = build_server(settings, logger)
     asyncio.run(server.run_streamable_http_async())

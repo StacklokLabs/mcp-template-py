@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     # Add your settings fields here
     debug: bool = Field(default=False, description="Enable debug logging if 'true'")
+    mcp_port: int = Field(default=8100, description="Port for the MCP server to listen on")
 
     @field_validator("debug", mode="before")
     @classmethod
