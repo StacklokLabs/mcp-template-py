@@ -23,7 +23,7 @@ RUN uv sync --no-dev
 
 # Create non-root user for security
 RUN groupadd --gid 1000 appgroup && \
-    useradd --uid 1000 --gid appgroup --shell /bin/bash --create-home appuser && \
+    useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --create-home appuser && \
     chown -R appuser:appgroup /app
 
 # Switch to non-root user
