@@ -1,11 +1,10 @@
 """Entry point for the MCP server."""
 
 import asyncio
-import logging
-from mcp_template_py.configure_logging import configure_logging
 import structlog
 
 from mcp.server.fastmcp import FastMCP
+from mcp_template_py.configure_logging import configure_logging
 from mcp_template_py.settings import Settings
 
 
@@ -40,8 +39,8 @@ if __name__ == "__main__":
     log_level = "DEBUG" if settings.debug else "INFO"
     configure_logging(log_level=log_level)
 
-    # Build and run the MCP server
     logger = structlog.get_logger()
+    # Build and run the MCP server
     logger.info("debug mode", debug=settings.debug)
     server = build_server(settings, logger)
     asyncio.run(server.run_streamable_http_async())

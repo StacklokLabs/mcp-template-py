@@ -1,10 +1,11 @@
 import logging.config
-from typing import Dict
 
 import structlog
 
 
-def configure_logging(log_level: str, rich_tracebacks: bool = False, colored_logs: bool = True) -> Dict:
+def configure_logging(
+    log_level: str, rich_tracebacks: bool = False, colored_logs: bool = True
+) -> dict:
     logging_level = getattr(logging, log_level.upper(), logging.INFO)
     # Full list of processors can be found at:
     # https://www.structlog.org/en/stable/api.html#module-structlog.processors
