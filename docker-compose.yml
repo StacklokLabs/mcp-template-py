@@ -5,7 +5,15 @@ services:
       dockerfile: Dockerfile
     image: mcp-template-py:dev
     ports:
-      - "8100:8100"
+      - "${MCP_PORT:-8100}:8100"
     environment:
+      MCP_PORT: 8100
       DEBUG: ${DEBUG:-false}
     restart: unless-stopped
+    # Security settings for k8s compatibility
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777,size=64M
+      - /home/appuser/.cache:mode=755,uid=1000,gid=1000,size=64M

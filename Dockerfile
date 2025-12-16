@@ -12,9 +12,6 @@ ENV PYTHONUNBUFFERED=1 \
 # Install uv from Astral's GitHub Container Registry
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Add uv to PATH
-ENV PATH="/root/.local/bin:$PATH"
-
 # Copy project files
 COPY pyproject.toml .
 COPY uv.lock* ./
@@ -24,8 +21,16 @@ COPY src/ ./src/
 # Install dependencies using uv
 RUN uv sync --no-dev
 
+# Create non-root user for security
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --create-home appuser && \
+    chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
 # Expose port
 EXPOSE 8100
 
-# Run the application
-CMD ["uv", "run", "-m", "src.mcp_template_py"]
+# Run the application (--no-sync since deps are already installed)
+CMD ["uv", "run", "--no-sync", "-m", "src.mcp_template_py"]
