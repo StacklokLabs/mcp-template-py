@@ -45,7 +45,7 @@ class AppBuilder:
         mcp = MCPBuilder.build_mcp(settings)
         mcp_http_app = mcp.streamable_http_app()
 
-        # Lifespan to properly initialize the MCP session manager.
+        # Lifespan to properly initialize the MCP session manager and cleanup resources.
         # When mounting streamable_http_app() as a sub-app, Starlette doesn't
         # trigger its lifespan, so we must run the session manager explicitly.
         # See: https://github.com/modelcontextprotocol/python-sdk/issues/1467
@@ -53,7 +53,12 @@ class AppBuilder:
         async def lifespan(_app: Starlette) -> AsyncIterator[None]:
             async with mcp.session_manager.run():
                 AppBuilder.logger.info("MCP session manager started")
-                yield
+                try:
+                    yield
+                finally:
+                    # Close the AuthManager's HTTP client on shutdown
+                    await auth_manager.close()
+                    AppBuilder.logger.info("AuthManager HTTP client closed")
             AppBuilder.logger.info("MCP session manager stopped")
 
         if settings.enable_oauth:

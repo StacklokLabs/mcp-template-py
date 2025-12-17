@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from mcp_template_py.auth.token_store.models import (
     AccessToken,
     AuthCode,
@@ -81,3 +83,59 @@ class InMemoryTokenStore(TokenStore):
     def revoke_registered_client(self, client_id: str) -> None:
         """Revoke a registered client."""
         self.registered_clients.pop(client_id, None)
+
+    def cleanup_expired_tokens(self) -> int:
+        """Remove expired access tokens and return count removed.
+
+        This should be called periodically to prevent unbounded memory growth.
+        """
+        now = datetime.now(timezone.utc)
+        expired = [k for k, v in self.access_tokens.items() if v.expires_at < now]
+        for key in expired:
+            del self.access_tokens[key]
+        return len(expired)
+
+    def cleanup_expired_auth_codes(self, max_age_minutes: int = 10) -> int:
+        """Remove expired authorization codes and return count removed.
+
+        Args:
+            max_age_minutes: Maximum age in minutes before a code is considered expired.
+        """
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(minutes=max_age_minutes)
+        expired = [k for k, v in self.auth_codes.items() if v.created_at < cutoff]
+        for key in expired:
+            del self.auth_codes[key]
+        return len(expired)
+
+    def cleanup_expired_pending_auths(self, max_age_minutes: int = 10) -> int:
+        """Remove expired pending authorizations and return count removed.
+
+        Args:
+            max_age_minutes: Maximum age in minutes before a pending auth is considered expired.
+        """
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(minutes=max_age_minutes)
+        expired = [k for k, v in self.pending_auths.items() if v.created_at < cutoff]
+        for key in expired:
+            del self.pending_auths[key]
+        return len(expired)
+
+    def cleanup_all_expired(
+        self, auth_code_max_age_minutes: int = 10
+    ) -> dict[str, int]:
+        """Remove all expired entries and return counts by type.
+
+        Args:
+            auth_code_max_age_minutes: Maximum age for auth codes and pending auths.
+
+        Returns:
+            Dictionary with counts of removed entries by type.
+        """
+        return {
+            "access_tokens": self.cleanup_expired_tokens(),
+            "auth_codes": self.cleanup_expired_auth_codes(auth_code_max_age_minutes),
+            "pending_auths": self.cleanup_expired_pending_auths(
+                auth_code_max_age_minutes
+            ),
+        }

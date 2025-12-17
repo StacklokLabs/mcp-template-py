@@ -11,11 +11,29 @@ from mcp_template_py.settings import Settings
 
 
 class AuthManager:
-    def __init__(self, settings: Settings | None = None):
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        http_client: httpx.AsyncClient | None = None,
+    ):
         self.current_external_tokens: contextvars.ContextVar[ExternalTokens | None] = (
             contextvars.ContextVar("current_external_tokens", default=None)
         )
         self._settings = settings or Settings()
+        self._http_client: httpx.AsyncClient | None = http_client or httpx.AsyncClient()
+        self._owns_client = http_client is None
+
+    async def _get_http_client(self) -> httpx.AsyncClient | None:
+        return self._http_client
+
+    async def close(self) -> None:
+        """Close the HTTP client if we own it.
+
+        Call this when shutting down to properly release resources.
+        """
+        if self._http_client is not None and self._owns_client:
+            await self._http_client.aclose()
+            self._http_client = None
 
     def get_external_tokens(self) -> ExternalTokens:
         """
@@ -64,31 +82,35 @@ class AuthManager:
 
     async def exchange_external_code(self, code: str) -> dict[str, Any]:
         """Exchange external authorization code for access and refresh tokens."""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                self._settings.oauth_external_token_url,
-                data={
-                    "code": code,
-                    "client_id": self._settings.oauth_client_id,
-                    "client_secret": self._settings.oauth_client_secret,
-                    "redirect_uri": self._settings.get_oauth_redirect_url(),
-                    "grant_type": "authorization_code",
-                },
-            )
-            response.raise_for_status()
-            return response.json()
+        client = await self._get_http_client()
+        if client is None:
+            raise RuntimeError("HTTP client is not available.")
+        response = await client.post(
+            self._settings.oauth_external_token_url,
+            data={
+                "code": code,
+                "client_id": self._settings.oauth_client_id,
+                "client_secret": self._settings.oauth_client_secret,
+                "redirect_uri": self._settings.get_oauth_redirect_url(),
+                "grant_type": "authorization_code",
+            },
+        )
+        response.raise_for_status()
+        return response.json()
 
     async def refresh_external_token(self, refresh_token: str) -> dict[str, Any]:
         """Refresh an expired external access token."""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                self._settings.oauth_external_token_url,
-                data={
-                    "refresh_token": refresh_token,
-                    "client_id": self._settings.oauth_client_id,
-                    "client_secret": self._settings.oauth_client_secret,
-                    "grant_type": "refresh_token",
-                },
-            )
-            response.raise_for_status()
-            return response.json()
+        client = await self._get_http_client()
+        if client is None:
+            raise RuntimeError("HTTP client is not available.")
+        response = await client.post(
+            self._settings.oauth_external_token_url,
+            data={
+                "refresh_token": refresh_token,
+                "client_id": self._settings.oauth_client_id,
+                "client_secret": self._settings.oauth_client_secret,
+                "grant_type": "refresh_token",
+            },
+        )
+        response.raise_for_status()
+        return response.json()

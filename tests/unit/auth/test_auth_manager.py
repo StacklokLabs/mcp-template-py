@@ -1,6 +1,7 @@
 """Unit tests for AuthManager."""
 
 import pytest
+import httpx
 from httpx import HTTPStatusError
 
 from mcp_template_py.auth.auth_manager import AuthManager
@@ -183,3 +184,104 @@ class TestExternalTokensContext:
 
         with pytest.raises(ValueError):
             auth_manager.get_external_tokens()
+
+
+class TestHttpClientLifecycle:
+    """Tests for HTTP client connection pooling and lifecycle."""
+
+    @pytest.mark.asyncio
+    async def test_client_reused_across_calls(self, mock_settings, httpx_mock):
+        """Same HTTP client is reused for multiple requests."""
+        auth_manager = AuthManager(mock_settings)
+
+        httpx_mock.add_response(
+            url="https://oauth2.example.com/token",
+            method="POST",
+            json={"access_token": "token1", "token_type": "Bearer"},
+        )
+        httpx_mock.add_response(
+            url="https://oauth2.example.com/token",
+            method="POST",
+            json={"access_token": "token2", "token_type": "Bearer"},
+        )
+
+        # Make two calls
+        await auth_manager.exchange_external_code("code1")
+        client_after_first = auth_manager._http_client
+
+        await auth_manager.refresh_external_token("refresh")
+        client_after_second = auth_manager._http_client
+
+        # Same client instance should be used
+        assert client_after_first is client_after_second
+
+        # Cleanup
+        await auth_manager.close()
+
+    @pytest.mark.asyncio
+    async def test_close_releases_client(self, mock_settings, httpx_mock):
+        """close() properly releases the HTTP client."""
+        auth_manager = AuthManager(mock_settings)
+
+        httpx_mock.add_response(
+            url="https://oauth2.example.com/token",
+            method="POST",
+            json={"access_token": "token", "token_type": "Bearer"},
+        )
+
+        # Create client by making a request
+        await auth_manager.exchange_external_code("code")
+        assert auth_manager._http_client is not None
+
+        # Close should release it
+        await auth_manager.close()
+        assert auth_manager._http_client is None
+
+    @pytest.mark.asyncio
+    async def test_close_idempotent(self, mock_settings):
+        """close() can be called multiple times safely."""
+        auth_manager = AuthManager(mock_settings)
+
+        # Close without ever creating a client
+        await auth_manager.close()
+        await auth_manager.close()
+
+        # Should not raise
+
+    @pytest.mark.asyncio
+    async def test_injected_client_not_closed(self, mock_settings, httpx_mock):
+        """Injected HTTP client is not closed by AuthManager."""
+        external_client = httpx.AsyncClient()
+        auth_manager = AuthManager(mock_settings, http_client=external_client)
+
+        httpx_mock.add_response(
+            url="https://oauth2.example.com/token",
+            method="POST",
+            json={"access_token": "token", "token_type": "Bearer"},
+        )
+
+        await auth_manager.exchange_external_code("code")
+
+        # Close should not close the external client
+        await auth_manager.close()
+
+        # External client should still be usable (not closed)
+        assert not external_client.is_closed
+
+        # Cleanup the external client ourselves
+        await external_client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_injected_client_used_directly(self, mock_settings, httpx_mock):
+        """Injected HTTP client is used directly without creating a new one."""
+        external_client = httpx.AsyncClient()
+        auth_manager = AuthManager(mock_settings, http_client=external_client)
+
+        assert auth_manager._http_client is external_client
+        assert auth_manager._owns_client is False
+
+        client = await auth_manager._get_http_client()
+        assert client is external_client
+
+        # Cleanup
+        await external_client.aclose()

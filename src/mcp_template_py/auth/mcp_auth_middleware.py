@@ -36,7 +36,7 @@ class MCPAuthMiddleware(BaseHTTPMiddleware):
         self._settings = settings
         self._token_store = token_store
         self._auth_manager = auth_manager
-        self._logger = structlog.get_logger(__name__)
+        self._logger = structlog.get_logger()
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next):

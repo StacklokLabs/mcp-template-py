@@ -1,4 +1,6 @@
-from pydantic import Field, field_validator
+from typing import Self
+
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -63,3 +65,22 @@ class Settings(BaseSettings):
     def get_oauth_redirect_url(self) -> str:
         """Get the OAuth2 redirect URL based on the server URL."""
         return f"{self.server_url}/oauth/callback"
+
+    @model_validator(mode="after")
+    def validate_oauth_settings(self) -> Self:
+        """Validate that required OAuth settings are present when OAuth is enabled."""
+        if self.enable_oauth:
+            required_fields = [
+                ("oauth_client_id", "OAuth client ID"),
+                ("oauth_client_secret", "OAuth client secret"),
+                ("oauth_external_auth_url", "OAuth external auth URL"),
+                ("oauth_external_token_url", "OAuth external token URL"),
+            ]
+            missing = [
+                name for field, name in required_fields if not getattr(self, field)
+            ]
+            if missing:
+                raise ValueError(
+                    f"OAuth is enabled but missing required settings: {', '.join(missing)}"
+                )
+        return self
