@@ -1,4 +1,5 @@
-from pydantic import Field, field_validator
+from typing import Annotated
+from pydantic import Field, field_validator, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,8 +11,34 @@ class Settings(BaseSettings):
 
     # Add your settings fields here
     debug: bool = Field(default=False, description="Enable debug logging if 'true'")
+    mcp_host: str = Field(
+        default="0.0.0.0", description="Host for the MCP server to listen on"
+    )
     mcp_port: int = Field(
         default=8100, description="Port for the MCP server to listen on"
+    )
+    server_url: str = Field(
+        default="http://localhost:8100", description="Base URL of the server"
+    )
+    enable_oauth: bool = Field(
+        default=False, description="Enable OAuth authentication if 'true'"
+    )
+    oauth_client_id: str = Field(
+        default="", description="OAuth client ID for authentication"
+    )
+    oauth_client_secret: str = Field(
+        default="", description="OAuth client secret for authentication"
+    )
+    oauth_external_auth_url: str = Field(
+        default="", description="URL for external OAuth authentication"
+    )
+    oauth_external_token_url: str = Field(
+        default="", description="URL for external OAuth token exchange"
+    )
+    oauth_external_scopes: Annotated[
+        list[str], BeforeValidator(lambda x: x.split(",") if x else [])
+    ] = Field(
+        default=[], description="List of scopes for external OAuth authentication"
     )
 
     @field_validator("debug", mode="before")
@@ -21,3 +48,7 @@ class Settings(BaseSettings):
         if isinstance(value, bool):
             return value
         return value.lower() in ("true", "1", "yes", "on")
+
+    def get_oauth_redirect_url(self) -> str:
+        """Get the OAuth2 redirect URL based on the server URL."""
+        return f"{self.server_url}/oauth/callback"

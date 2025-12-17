@@ -9,6 +9,11 @@ services:
     environment:
       MCP_PORT: 8100
       DEBUG: ${DEBUG:-false}
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:-}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET:-}
+      OAUTH_EXTERNAL_AUTH_URL: ${OAUTH_EXTERNAL_AUTH_URL:-}
+      OAUTH_EXTERNAL_TOKEN_URL: ${OAUTH_EXTERNAL_TOKEN_URL:-}
+      OAUTH_EXTERNAL_SCOPES: ${OAUTH_EXTERNAL_SCOPES:-}
     restart: unless-stopped
     # Security settings for k8s compatibility
     read_only: true
