@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     # Add your settings fields here
     debug: bool = Field(default=False, description="Enable debug logging if 'true'")
     mcp_host: str = Field(
-        default="0.0.0.0", description="Host for the MCP server to listen on"
+        default="0.0.0.0",  # nosec B104 - intentional for container deployments
+        description="Host for the MCP server to listen on",
     )
     mcp_port: int = Field(
         default=8100, description="Port for the MCP server to listen on"
