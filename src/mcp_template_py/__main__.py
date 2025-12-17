@@ -16,7 +16,7 @@ def build_server(settings: Settings, logger: structlog.BoundLogger) -> FastMCP:
     Returns:
         Configured FastMCP server instance
     """
-    mcp = FastMCP("agent-mcp", host="0.0.0.0", port=settings.mcp_port)
+    mcp = FastMCP("agent-mcp", host="0.0.0.0", port=settings.mcp_port)  # nosec B104 - Intentionally bind to all interfaces for server accessibility
 
     @mcp.tool()
     async def hello(name: str) -> str:
