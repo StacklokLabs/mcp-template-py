@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         default="", description="OAuth client ID for authentication"
     )
     oauth_client_secret: str = Field(
-        default="", description="OAuth client secret for authentication"
+        default="", repr=False, description="OAuth client secret for authentication"
     )
     oauth_external_auth_url: str = Field(
         default="", description="URL for external OAuth authentication"

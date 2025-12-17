@@ -1,4 +1,4 @@
-import logging
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any, cast
@@ -21,22 +21,7 @@ class AppBuilder:
 
     @staticmethod
     def build_app(settings: Settings | None = None) -> Starlette:
-        # configure logging
         settings = settings or Settings()
-        logging.basicConfig(
-            level=logging.DEBUG if settings.debug else logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
-
-        structlog.configure(
-            processors=[
-                structlog.stdlib.add_logger_name,
-                structlog.stdlib.add_log_level,
-                structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-            ],
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
-        )
 
         # build Starlette app with OAuth and MCP endpoints
         token_store = InMemoryTokenStore()
@@ -45,17 +30,42 @@ class AppBuilder:
         mcp = MCPBuilder.build_mcp(settings)
         mcp_http_app = mcp.streamable_http_app()
 
+        # Background task to periodically clean up expired tokens
+        async def cleanup_expired_tokens() -> None:
+            """Periodically clean up expired tokens to prevent memory growth."""
+            cleanup_interval_seconds = 300  # 5 minutes
+            while True:
+                await asyncio.sleep(cleanup_interval_seconds)
+                try:
+                    removed = token_store.cleanup_all_expired()
+                    if any(removed.values()):
+                        AppBuilder.logger.debug(
+                            "Cleaned up expired tokens", removed=removed
+                        )
+                except Exception as e:
+                    AppBuilder.logger.warning(
+                        "Error during token cleanup", error=str(e)
+                    )
+
         # Lifespan to properly initialize the MCP session manager and cleanup resources.
         # When mounting streamable_http_app() as a sub-app, Starlette doesn't
         # trigger its lifespan, so we must run the session manager explicitly.
         # See: https://github.com/modelcontextprotocol/python-sdk/issues/1467
         @asynccontextmanager
         async def lifespan(_app: Starlette) -> AsyncIterator[None]:
+            cleanup_task = asyncio.create_task(cleanup_expired_tokens())
             async with mcp.session_manager.run():
                 AppBuilder.logger.info("MCP session manager started")
                 try:
                     yield
                 finally:
+                    # Cancel the cleanup task
+                    cleanup_task.cancel()
+                    try:
+                        await cleanup_task
+                    except asyncio.CancelledError:
+                        pass
+                    AppBuilder.logger.debug("Token cleanup task cancelled")
                     # Close the AuthManager's HTTP client on shutdown
                     await auth_manager.close()
                     AppBuilder.logger.info("AuthManager HTTP client closed")
