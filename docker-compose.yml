@@ -9,6 +9,7 @@ services:
     environment:
       MCP_PORT: 8100
       DEBUG: ${DEBUG:-false}
+      ENABLE_OAUTH: ${ENABLE_OAUTH:-false}
       OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:-}
       OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET:-}
       OAUTH_EXTERNAL_AUTH_URL: ${OAUTH_EXTERNAL_AUTH_URL:-}

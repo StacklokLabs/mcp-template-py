@@ -44,9 +44,9 @@ class OAuthApi:
         return JSONResponse(
             {
                 "issuer": self._settings.server_url,
-                "authorization_endpoint": f"{self._settings.server_url}/authorize",
-                "token_endpoint": f"{self._settings.server_url}/token",
-                "registration_endpoint": f"{self._settings.server_url}/register",
+                "authorization_endpoint": f"{self._settings.server_url}/oauth/authorize",
+                "token_endpoint": f"{self._settings.server_url}/oauth/token",
+                "registration_endpoint": f"{self._settings.server_url}/oauth/register",
                 "response_types_supported": ["code"],
                 "grant_types_supported": ["authorization_code", "refresh_token"],
                 "code_challenge_methods_supported": ["S256"],
@@ -65,7 +65,7 @@ class OAuthApi:
         Request body:
             {
                 "client_name": "Claude Code",
-                "redirect_uris": ["http://localhost:8080/callback"]
+                "redirect_uris": ["http://localhost:8100/oauth/callback"]
             }
         """
         body = await request.json()
