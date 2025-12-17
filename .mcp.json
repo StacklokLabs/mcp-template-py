@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mcp-template-py": {
+      "type": "http",
+      "url": "http://localhost:8100/mcp"
+    }
+  }
+}

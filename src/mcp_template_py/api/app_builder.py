@@ -61,25 +61,28 @@ class AppBuilder:
             middleware=[
                 Middleware(
                     cast(Any, MCPAuthMiddleware),
+                    settings=settings,
                     token_store=token_store,
                     auth_manager=auth_manager,
                 ),
-            ],
+            ] if settings.enable_oauth else [],
         )
 
-        oauth = OAuthApi(token_store, auth_manager, settings)
-
-        oauth_routes = (
-            [
-                Route("/.well-known/oauth-authorization-server", oauth.oauth_metadata),
-                Route("/oauth/register", oauth.register_client, methods=["POST"]),
-                Route("/oauth/authorize", oauth.authorize, methods=["GET"]),
-                Route("/oauth/callback", oauth.external_callback, methods=["GET"]),
-                Route("/oauth/token", oauth.token_endpoint, methods=["POST"]),
-            ]
-            if settings.enable_oauth
-            else []
-        )
+        if settings.enable_oauth:
+            AppBuilder.logger.info("Enabling OAuth endpoints")
+            oauth = OAuthApi(token_store, auth_manager, settings)
+            oauth_routes = (
+                [
+                    Route("/.well-known/oauth-authorization-server", oauth.oauth_metadata),
+                    Route("/oauth/register", oauth.register_client, methods=["POST"]),
+                    Route("/oauth/authorize", oauth.authorize, methods=["GET"]),
+                    Route("/oauth/callback", oauth.external_callback, methods=["GET"]),
+                    Route("/oauth/token", oauth.token_endpoint, methods=["POST"]),
+                ]
+            )
+        else:
+            AppBuilder.logger.info("Disabling OAuth endpoints")
+            oauth_routes = []
 
         routes = oauth_routes + [Mount("/mcp", app=mcp_app)]
 

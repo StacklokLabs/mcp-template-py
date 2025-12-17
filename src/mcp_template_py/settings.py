@@ -1,6 +1,14 @@
-from typing import Annotated
-from pydantic import Field, field_validator, BeforeValidator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def parse_comma_separated_list(value: str | list[str]) -> list[str]:
+    """Parse a comma-separated string into a list, or return the list as-is."""
+    if isinstance(value, list):
+        return value
+    if not value or not value.strip():
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 class Settings(BaseSettings):
@@ -35,13 +43,16 @@ class Settings(BaseSettings):
     oauth_external_token_url: str = Field(
         default="", description="URL for external OAuth token exchange"
     )
-    oauth_external_scopes: Annotated[
-        list[str], BeforeValidator(lambda x: x.split(",") if x else [])
-    ] = Field(
-        default=[], description="List of scopes for external OAuth authentication"
+    oauth_external_scopes: str = Field(
+        default="",
+        description="Comma-separated list of scopes for external OAuth authentication",
     )
 
-    @field_validator("debug", mode="before")
+    def get_oauth_scopes(self) -> list[str]:
+        """Get the OAuth scopes as a list."""
+        return parse_comma_separated_list(self.oauth_external_scopes)
+
+    @field_validator("debug", "enable_oauth", mode="before")
     @classmethod
     def parse_bool(cls, value: str | bool) -> bool:
         """Parse a string or bool value to a boolean."""

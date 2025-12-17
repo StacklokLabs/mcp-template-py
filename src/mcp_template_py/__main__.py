@@ -17,6 +17,7 @@ if __name__ == "__main__":
     logger = structlog.get_logger()
     # Build and run the MCP server
     app = AppBuilder.build_app(settings)
+    logger.info("Starting MCP server", host=settings.mcp_host, port=settings.mcp_port)
     uvicorn.run(
         app,
         host=settings.mcp_host,

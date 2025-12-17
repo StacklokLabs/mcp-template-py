@@ -4,6 +4,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
+import structlog
 
 from mcp_template_py.auth.auth_manager import AuthManager
 from mcp_template_py.auth.token_store import TokenStore
@@ -35,11 +36,13 @@ class MCPAuthMiddleware(BaseHTTPMiddleware):
         self._settings = settings
         self._token_store = token_store
         self._auth_manager = auth_manager
+        self._logger = structlog.get_logger(__name__)
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next):
         if not self._settings.enable_oauth:
             # OAuth is disabled - skip auth and proceed to next middleware
+            self._logger.debug("OAuth disabled - skipping authentication")
             return await call_next(request)
 
         # Extract Bearer token from Authorization header

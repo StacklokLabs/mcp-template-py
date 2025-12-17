@@ -233,7 +233,7 @@ class OAuthApi:
             "client_id": self._settings.oauth_client_id,
             "redirect_uri": self._settings.get_oauth_redirect_url(),
             "response_type": "code",
-            "scope": " ".join(self._settings.oauth_external_scopes),
+            "scope": " ".join(self._settings.get_oauth_scopes()),
             "state": external_state,
             "access_type": "offline",  # Request refresh token
             "prompt": "consent",  # Always show consent to get refresh token
