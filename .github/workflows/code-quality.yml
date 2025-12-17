@@ -39,3 +39,17 @@ jobs:
 
       - name: Run Security Scanning
         run: task security
+
+      - name: Generate SBOM
+        run: task sbom
+
+      - name: Upload Security Reports as Artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()  # Upload even if security scan fails
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            pip-audit-report.json
+            sbom.json
+          retention-days: 30
