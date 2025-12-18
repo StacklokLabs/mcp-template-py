@@ -22,5 +22,4 @@ if __name__ == "__main__":
         app,
         host=settings.mcp_host,
         port=settings.mcp_port,
-        log_level="debug" if settings.debug else "info",
     )
