@@ -1,36 +1,11 @@
 """Entry point for the MCP server."""
 
-import asyncio
 import structlog
 
-from mcp.server.fastmcp import FastMCP
+import uvicorn
+from mcp_template_py.api.app_builder import AppBuilder
 from mcp_template_py.configure_logging import configure_logging
 from mcp_template_py.settings import Settings
-
-
-def build_server(settings: Settings, logger: structlog.BoundLogger) -> FastMCP:
-    """Build and configure the MCP server.
-
-    Creates a FastMCP instance with an example tool.
-
-    Returns:
-        Configured FastMCP server instance
-    """
-    mcp = FastMCP("agent-mcp", host="0.0.0.0", port=settings.mcp_port)  # nosec B104 - Intentionally bind to all interfaces for server accessibility
-
-    @mcp.tool()
-    async def hello(name: str) -> str:
-        """Say hello to the user.
-
-        Args:
-            name: Name of the user
-        Returns:
-            Greeting message
-        """
-        logger.info("hello tool called", name=name)
-        return f"Hello, {name}!"
-
-    return mcp
 
 
 if __name__ == "__main__":
@@ -41,6 +16,11 @@ if __name__ == "__main__":
 
     logger = structlog.get_logger()
     # Build and run the MCP server
-    logger.info("debug mode", debug=settings.debug)
-    server = build_server(settings, logger)
-    asyncio.run(server.run_streamable_http_async())
+    app = AppBuilder.build_app(settings)
+    logger.info("Starting MCP server", host=settings.mcp_host, port=settings.mcp_port)
+    uvicorn.run(
+        app,
+        host=settings.mcp_host,
+        port=settings.mcp_port,
+        log_level="debug" if settings.debug else "info",
+    )
