@@ -522,21 +522,21 @@ class TestTokenPassthrough:
         # Should succeed despite not being in store
         assert response.status_code == 200
 
-    def test_google_style_token_passthrough(
+    def test_external_token_format_passthrough(
         self,
         passthrough_client: TestClient,
     ):
-        """Real Google token format (ya29.xxx) passes through."""
-        google_token = "ya29.a0AfH6SMBx1234567890abcdefghijklmnopqrstuvwxyz"
+        """External token format (ya29.xxx) passes through."""
+        external_token = "ya29.a0AfH6SMBx1234567890abcdefghijklmnopqrstuvwxyz"
 
         response = passthrough_client.get(
             "/protected",
-            headers={"Authorization": f"Bearer {google_token}"},
+            headers={"Authorization": f"Bearer {external_token}"},
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["external_access_token"] == google_token
+        assert data["external_access_token"] == external_token
 
 
 class TestPrefixConfiguration:
@@ -669,7 +669,7 @@ class TestPrefixConfiguration:
         # Try to use an external token (doesn't start with mcp- prefix)
         response = test_client.get(
             "/protected",
-            headers={"Authorization": "Bearer ya29.external_google_token"},
+            headers={"Authorization": "Bearer ya29.external_oauth_token"},
         )
 
         # Should be rejected since passthrough is disabled
