@@ -37,6 +37,15 @@ def mock_settings() -> Settings:
 
 
 @pytest.fixture
+def passthrough_settings() -> Settings:
+    """Create test settings with token passthrough enabled."""
+    return create_test_settings(
+        server_url="http://localhost:8100",
+        allow_token_passthrough=True,
+    )
+
+
+@pytest.fixture
 def token_store() -> InMemoryTokenStore:
     """Create a fresh InMemoryTokenStore instance."""
     return InMemoryTokenStore()

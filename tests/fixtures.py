@@ -44,6 +44,8 @@ def create_test_settings(
     oauth_external_auth_url: str = "https://accounts.example.com/o/oauth2/v2/auth",
     oauth_external_token_url: str = "https://oauth2.example.com/token",
     enable_oauth: bool = True,
+    allow_token_passthrough: bool = False,
+    minted_token_prefix: str = "mcp-",
 ) -> Settings:
     """Create test settings with fake OAuth credentials."""
     return Settings(
@@ -54,6 +56,8 @@ def create_test_settings(
         oauth_external_token_url=oauth_external_token_url,
         oauth_external_scopes="openid,email,profile",
         enable_oauth=enable_oauth,
+        allow_token_passthrough=allow_token_passthrough,
+        minted_token_prefix=minted_token_prefix,
         mcp_host="127.0.0.1",
         mcp_port=8100,
     )
