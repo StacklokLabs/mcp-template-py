@@ -8,6 +8,7 @@ import structlog
 
 from mcp_template_py.auth.auth_manager import AuthManager
 from mcp_template_py.auth.token_store import TokenStore
+from mcp_template_py.auth.token_store.models import ExternalTokens
 from mcp_template_py.settings import Settings
 
 
@@ -48,10 +49,31 @@ class MCPAuthMiddleware(BaseHTTPMiddleware):
         # Extract Bearer token from Authorization header
         auth_header = request.headers.get("Authorization", "")
 
-        if not auth_header.startswith("Bearer "):
+        if not auth_header.startswith("Bearer ") or len(auth_header) <= 7:
             return self._unauthorized_response("Bearer token required")
 
         token = auth_header[7:]  # Remove "Bearer " prefix
+
+        if not token.startswith(self._settings.minted_token_prefix):
+            # Token does not have our internal prefix - check if passthrough is enabled
+            if not self._settings.allow_token_passthrough:
+                self._logger.info(
+                    "Token passthrough disabled, rejecting external token"
+                )
+                return self._unauthorized_response("Token not found or revoked")
+
+            # Treat as external token - allows upstream (e.g. ToolHive proxy) to pass tokens directly
+            self._logger.info(
+                "Token passthrough: using externally-provided OAuth token"
+            )
+            external_tokens = ExternalTokens(access_token=token, token_type="Bearer")  # nosec B106 - not a password
+            ctx_token = self._auth_manager.set_external_tokens(external_tokens)
+            try:
+                return await call_next(request)
+            finally:
+                # Always reset context to prevent leaks between requests
+                self._auth_manager.reset_external_tokens(ctx_token)
+
         token_data = self._token_store.get_access_token(token)
 
         # Check if token exists
