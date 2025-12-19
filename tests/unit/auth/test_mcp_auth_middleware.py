@@ -292,7 +292,7 @@ class TestTokenExpiration:
     ):
         """Test token that is about to expire but still valid."""
         # Create a token that expires in 5 seconds (still valid)
-        token = "mcp_template_py_boundary_test"
+        token = "mcp-boundary_test"
         access_token = AccessToken(
             external_tokens=sample_external_tokens,
             client_id=registered_client.client_id,
@@ -318,7 +318,7 @@ class TestTokenExpiration:
         sample_external_tokens: ExternalTokens,
     ):
         """Test token that just expired (1 second ago)."""
-        token = "mcp_template_py_just_expired"
+        token = "mcp-just_expired"
         access_token = AccessToken(
             external_tokens=sample_external_tokens,
             client_id=registered_client.client_id,

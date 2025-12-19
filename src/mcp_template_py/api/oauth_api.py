@@ -523,8 +523,12 @@ class OAuthApi:
         self._token_store.delete_auth_code(code)
 
         # Issue our access token
-        access_token = f"mcp_template_py_{self._auth_manager.generate_token()}"
-        refresh_token = f"mcp_template_py_refresh_{self._auth_manager.generate_token()}"
+        access_token = (
+            f"{self._settings.minted_token_prefix}{self._auth_manager.generate_token()}"
+        )
+        refresh_token = (
+            f"{self._settings.minted_token_prefix}{self._auth_manager.generate_token()}"
+        )
         expires_in = 3600  # 1 hour
 
         self._token_store.store_access_token(
@@ -641,9 +645,11 @@ class OAuthApi:
         self._token_store.revoke_access_token(old_access_token)
 
         # Issue new tokens
-        new_access_token = f"mcp_template_py_{self._auth_manager.generate_token()}"
+        new_access_token = (
+            f"{self._settings.minted_token_prefix}{self._auth_manager.generate_token()}"
+        )
         new_refresh_token = (
-            f"mcp_template_py_refresh_{self._auth_manager.generate_token()}"
+            f"{self._settings.minted_token_prefix}{self._auth_manager.generate_token()}"
         )
         expires_in = 3600
 

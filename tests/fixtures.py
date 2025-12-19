@@ -166,8 +166,8 @@ def create_access_token(
     expired: bool = False,
 ) -> tuple[str, AccessToken]:
     """Create an access token."""
-    token = f"mcp_template_py_{secrets.token_urlsafe(32)}"
-    refresh_token = f"mcp_template_py_refresh_{secrets.token_urlsafe(32)}"
+    token = f"mcp-{secrets.token_urlsafe(32)}"
+    refresh_token = f"mcp-{secrets.token_urlsafe(32)}"
 
     expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     if expired:

@@ -118,7 +118,7 @@ class TestFullOAuthFlow:
         assert response.status_code == 200
         token_data = response.json()
         assert "access_token" in token_data
-        assert token_data["access_token"].startswith("mcp_template_py_")
+        assert token_data["access_token"].startswith("mcp-")
         assert "refresh_token" in token_data
         assert token_data["token_type"] == "Bearer"
         assert token_data["expires_in"] == 3600

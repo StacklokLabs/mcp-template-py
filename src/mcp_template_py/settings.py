@@ -50,12 +50,20 @@ class Settings(BaseSettings):
         default="",
         description="Comma-separated list of scopes for external OAuth authentication",
     )
+    minted_token_prefix: str = Field(
+        default="mcp-",
+        description="Prefix for access tokens minted by the MCP, used to distinguish from Google tokens",
+    )
+    allow_token_passthrough: bool = Field(
+        default=False,
+        description="Accept Google access tokens directly if 'true', otherwise require them to be minted by the MCP",
+    )
 
     def get_oauth_scopes(self) -> list[str]:
         """Get the OAuth scopes as a list."""
         return parse_comma_separated_list(self.oauth_external_scopes)
 
-    @field_validator("debug", "enable_oauth", mode="before")
+    @field_validator("debug", "enable_oauth", "allow_token_passthrough", mode="before")
     @classmethod
     def parse_bool(cls, value: str | bool) -> bool:
         """Parse a string or bool value to a boolean."""
