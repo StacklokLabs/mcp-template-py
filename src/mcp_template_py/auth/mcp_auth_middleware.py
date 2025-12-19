@@ -66,7 +66,7 @@ class MCPAuthMiddleware(BaseHTTPMiddleware):
             self._logger.info(
                 "Token passthrough: using externally-provided OAuth token"
             )
-            external_tokens = ExternalTokens(access_token=token, token_type="Bearer")
+            external_tokens = ExternalTokens(access_token=token, token_type="Bearer")  # nosec B106 - not a password
             ctx_token = self._auth_manager.set_external_tokens(external_tokens)
             try:
                 return await call_next(request)
