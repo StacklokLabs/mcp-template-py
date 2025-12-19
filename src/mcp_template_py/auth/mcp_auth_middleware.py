@@ -62,12 +62,12 @@ class MCPAuthMiddleware(BaseHTTPMiddleware):
                 )
                 return self._unauthorized_response("Token not found or revoked")
 
-            # Treat as Google token - allows upstream (e.g. ToolHive proxy) to pass tokens directly
+            # Treat as external token - allows upstream (e.g. ToolHive proxy) to pass tokens directly
             self._logger.info(
                 "Token passthrough: using externally-provided OAuth token"
             )
-            google_tokens = ExternalTokens(access_token=token, token_type="Bearer")
-            ctx_token = self._auth_manager.set_external_tokens(google_tokens)
+            external_tokens = ExternalTokens(access_token=token, token_type="Bearer")
+            ctx_token = self._auth_manager.set_external_tokens(external_tokens)
             try:
                 return await call_next(request)
             finally:

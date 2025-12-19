@@ -15,6 +15,7 @@ services:
       OAUTH_EXTERNAL_AUTH_URL: ${OAUTH_EXTERNAL_AUTH_URL:-}
       OAUTH_EXTERNAL_TOKEN_URL: ${OAUTH_EXTERNAL_TOKEN_URL:-}
       OAUTH_EXTERNAL_SCOPES: ${OAUTH_EXTERNAL_SCOPES:-}
+      ALLOW_TOKEN_PASSTHROUGH: ${ALLOW_TOKEN_PASSTHROUGH:-false}
     restart: unless-stopped
     # Security settings for k8s compatibility
     read_only: true

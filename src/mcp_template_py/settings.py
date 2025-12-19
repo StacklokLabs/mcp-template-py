@@ -52,11 +52,11 @@ class Settings(BaseSettings):
     )
     minted_token_prefix: str = Field(
         default="mcp-",
-        description="Prefix for access tokens minted by the MCP, used to distinguish from Google tokens",
+        description="Prefix for access tokens minted by the MCP, used to distinguish from passthrough tokens",
     )
     allow_token_passthrough: bool = Field(
         default=False,
-        description="Accept Google access tokens directly if 'true', otherwise require them to be minted by the MCP",
+        description="Accept external access tokens directly if 'true', otherwise require them to be minted by the MCP",
     )
 
     def get_oauth_scopes(self) -> list[str]:
