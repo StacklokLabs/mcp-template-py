@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 
 import httpx
 import structlog
+from fastapi import FastAPI
 from fastapi import APIRouter, Form, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
@@ -770,8 +771,6 @@ def create_oauth_fastapi_app(
     Returns:
         FastAPI application with OAuth endpoints configured
     """
-    from fastapi import FastAPI
-
     # Create FastAPI app with configurable API docs
     app = FastAPI(
         title="MCP OAuth Server",

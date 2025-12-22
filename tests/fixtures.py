@@ -15,7 +15,9 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.routing import Mount
 from starlette.testclient import TestClient
+from fastapi import APIRouter, FastAPI
 
+from mcp_template_py.api import oauth_router as oauth_router_module
 from mcp_template_py.api.mcp_builder import MCPBuilder
 from mcp_template_py.auth.auth_manager import AuthManager
 from mcp_template_py.auth.mcp_auth_middleware import MCPAuthMiddleware
@@ -331,11 +333,6 @@ def create_mocked_oauth_app(
     Returns:
         FastAPI app with mocked external callback
     """
-    from fastapi import APIRouter, FastAPI
-
-    # Create a new router with the mocked callback
-    from mcp_template_py.api import oauth_router as oauth_router_module
-
     router = APIRouter(tags=["OAuth 2.0"])
 
     # Register all endpoints except external_callback from the original router
