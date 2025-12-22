@@ -39,6 +39,9 @@ from mcp_template_py.settings import Settings
 router = APIRouter(tags=["OAuth 2.0"])
 logger = structlog.get_logger()
 
+# Token lifetime constants
+ACCESS_TOKEN_LIFETIME_SECONDS = 3600  # 1 hour
+
 
 @router.get(
     "/.well-known/oauth-authorization-server",
@@ -129,7 +132,7 @@ async def register_client(
         redirect_uris=registration.redirect_uris,
         grant_types=["authorization_code"],
         response_types=["code"],
-        token_endpoint_auth_method="none",
+        token_endpoint_auth_method="none",  # nosec B106
     )
 
 
@@ -512,17 +515,17 @@ async def handle_authorization_code_grant(
     """Handle authorization_code grant type."""
     logger.debug("Processing authorization code grant", client_id=client_id)
 
-    # Ensure code is a string (not UploadFile)
-    if not isinstance(code, str):
+    # Validate required parameter
+    if code is None:
         logger.debug(
-            "Authorization code grant failed: code must be a string",
+            "Authorization code grant failed: code is required",
             client_id=client_id,
         )
         raise HTTPException(
             status_code=400,
             detail={
                 "error": "invalid_request",
-                "error_description": "code must be a string",
+                "error_description": "code is required",
             },
         )
 
@@ -605,7 +608,7 @@ async def handle_authorization_code_grant(
     # Issue our access token
     access_token = f"{settings.minted_token_prefix}{auth_manager.generate_token()}"
     refresh_token = f"{settings.minted_token_prefix}{auth_manager.generate_token()}"
-    expires_in = 3600  # 1 hour
+    expires_in = ACCESS_TOKEN_LIFETIME_SECONDS
 
     token_store.store_access_token(
         AccessToken(
@@ -624,7 +627,7 @@ async def handle_authorization_code_grant(
     )
     return TokenResponse(
         access_token=access_token,
-        token_type="Bearer",
+        token_type="Bearer",  # nosec B106
         expires_in=expires_in,
         refresh_token=refresh_token,
         scope=auth_code.scope,
@@ -640,14 +643,14 @@ async def handle_refresh_token_grant(
     """Handle refresh_token grant type."""
     logger.debug("Refresh token grant: processing request")
 
-    # Validate refresh_token is a string
-    if not isinstance(refresh_token, str):
-        logger.debug("Refresh token grant failed: refresh_token must be a string")
+    # Validate required parameter
+    if refresh_token is None:
+        logger.debug("Refresh token grant failed: refresh_token is required")
         raise HTTPException(
             status_code=400,
             detail={
                 "error": "invalid_request",
-                "error_description": "refresh_token must be a string",
+                "error_description": "refresh_token is required",
             },
         )
 
@@ -719,7 +722,7 @@ async def handle_refresh_token_grant(
     # Issue new tokens
     new_access_token = f"{settings.minted_token_prefix}{auth_manager.generate_token()}"
     new_refresh_token = f"{settings.minted_token_prefix}{auth_manager.generate_token()}"
-    expires_in = 3600
+    expires_in = ACCESS_TOKEN_LIFETIME_SECONDS
 
     token_store.store_access_token(
         AccessToken(
@@ -738,7 +741,7 @@ async def handle_refresh_token_grant(
     )
     return TokenResponse(
         access_token=new_access_token,
-        token_type="Bearer",
+        token_type="Bearer",  # nosec B106
         expires_in=expires_in,
         refresh_token=new_refresh_token,
         scope=token_entry.scope,
@@ -757,7 +760,7 @@ def create_oauth_fastapi_app(
 
     This factory function creates a FastAPI application with the OAuth router
     included and sets up dependency injection for the token store, auth manager,
-    and settings.
+    and settings using FastAPI's app.state.
 
     Args:
         token_store: TokenStore instance for managing OAuth tokens and clients
@@ -769,25 +772,19 @@ def create_oauth_fastapi_app(
     """
     from fastapi import FastAPI
 
-    from mcp_template_py.api.oauth_dependencies import (
-        set_auth_manager,
-        set_settings,
-        set_token_store,
-    )
-
-    # Set context variables for dependency injection
-    set_token_store(token_store)
-    set_auth_manager(auth_manager)
-    set_settings(settings)
-
-    # Create FastAPI app
+    # Create FastAPI app with configurable API docs
     app = FastAPI(
         title="MCP OAuth Server",
         description="OAuth 2.0 authentication for MCP",
         version="1.0.0",
-        docs_url=None,  # Disable docs in production
-        redoc_url=None,
+        docs_url=settings.oauth_docs_url,
+        redoc_url=settings.oauth_redoc_url,
     )
+
+    # Store dependencies in app state for FastAPI's standard DI pattern
+    app.state.token_store = token_store
+    app.state.auth_manager = auth_manager
+    app.state.settings = settings
 
     # Include OAuth router
     app.include_router(router)

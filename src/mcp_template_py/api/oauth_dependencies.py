@@ -1,76 +1,66 @@
 """FastAPI dependency injection providers for OAuth endpoints."""
 
-from contextvars import ContextVar
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from mcp_template_py.auth.auth_manager import AuthManager
 from mcp_template_py.auth.token_store import TokenStore
 from mcp_template_py.settings import Settings
 
-# Context variables for app-level singletons
-# These are set once during app initialization and accessed via dependencies
-_token_store: ContextVar[TokenStore | None] = ContextVar("_token_store", default=None)
-_auth_manager: ContextVar[AuthManager | None] = ContextVar(
-    "_auth_manager", default=None
-)
-_settings: ContextVar[Settings | None] = ContextVar("_settings", default=None)
 
+def get_token_store(request: Request) -> TokenStore:
+    """Get the TokenStore instance from app state.
 
-def get_token_store() -> TokenStore:
-    """Get the TokenStore instance from context.
+    Args:
+        request: FastAPI request object containing app state.
+
+    Returns:
+        TokenStore instance from app state.
 
     Raises:
-        RuntimeError: If TokenStore has not been initialized.
+        RuntimeError: If TokenStore has not been initialized in app state.
     """
-    store = _token_store.get()
-    if store is None:
-        raise RuntimeError("TokenStore not initialized")
-    return store
+    if not hasattr(request.app.state, "token_store"):
+        raise RuntimeError("TokenStore not initialized in app state")
+    return request.app.state.token_store
 
 
-def get_auth_manager() -> AuthManager:
-    """Get the AuthManager instance from context.
+def get_auth_manager(request: Request) -> AuthManager:
+    """Get the AuthManager instance from app state.
+
+    Args:
+        request: FastAPI request object containing app state.
+
+    Returns:
+        AuthManager instance from app state.
 
     Raises:
-        RuntimeError: If AuthManager has not been initialized.
+        RuntimeError: If AuthManager has not been initialized in app state.
     """
-    manager = _auth_manager.get()
-    if manager is None:
-        raise RuntimeError("AuthManager not initialized")
-    return manager
+    if not hasattr(request.app.state, "auth_manager"):
+        raise RuntimeError("AuthManager not initialized in app state")
+    return request.app.state.auth_manager
 
 
-def get_settings() -> Settings:
-    """Get the Settings instance from context.
+def get_settings(request: Request) -> Settings:
+    """Get the Settings instance from app state.
+
+    Args:
+        request: FastAPI request object containing app state.
+
+    Returns:
+        Settings instance from app state.
 
     Raises:
-        RuntimeError: If Settings has not been initialized.
+        RuntimeError: If Settings has not been initialized in app state.
     """
-    settings = _settings.get()
-    if settings is None:
-        raise RuntimeError("Settings not initialized")
-    return settings
+    if not hasattr(request.app.state, "settings"):
+        raise RuntimeError("Settings not initialized in app state")
+    return request.app.state.settings
 
 
 # Type aliases for cleaner endpoint signatures
 TokenStoreDep = Annotated[TokenStore, Depends(get_token_store)]
 AuthManagerDep = Annotated[AuthManager, Depends(get_auth_manager)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
-
-
-# Setter functions for app initialization
-def set_token_store(store: TokenStore) -> None:
-    """Set the TokenStore instance in context."""
-    _token_store.set(store)
-
-
-def set_auth_manager(manager: AuthManager) -> None:
-    """Set the AuthManager instance in context."""
-    _auth_manager.set(manager)
-
-
-def set_settings(settings: Settings) -> None:
-    """Set the Settings instance in context."""
-    _settings.set(settings)

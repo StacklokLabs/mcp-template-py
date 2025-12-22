@@ -333,17 +333,6 @@ def create_mocked_oauth_app(
     """
     from fastapi import APIRouter, FastAPI
 
-    from mcp_template_py.api.oauth_dependencies import (
-        set_auth_manager,
-        set_settings,
-        set_token_store,
-    )
-
-    # Set context variables for dependency injection
-    set_token_store(token_store)
-    set_auth_manager(auth_manager)
-    set_settings(settings)
-
     # Create a new router with the mocked callback
     from mcp_template_py.api import oauth_router as oauth_router_module
 
@@ -372,6 +361,11 @@ def create_mocked_oauth_app(
         docs_url=None,
         redoc_url=None,
     )
+
+    # Store dependencies in app state for FastAPI's standard DI pattern
+    app.state.token_store = token_store
+    app.state.auth_manager = auth_manager
+    app.state.settings = settings
 
     # Include the router
     app.include_router(router)

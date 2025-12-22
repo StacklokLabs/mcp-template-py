@@ -58,6 +58,14 @@ class Settings(BaseSettings):
         default=False,
         description="Accept external access tokens directly if 'true', otherwise require them to be minted by the MCP",
     )
+    oauth_docs_url: str | None = Field(
+        default=None,
+        description="URL path for FastAPI Swagger documentation (e.g., '/docs'). Set to enable API docs, leave None to disable.",
+    )
+    oauth_redoc_url: str | None = Field(
+        default=None,
+        description="URL path for FastAPI ReDoc documentation (e.g., '/redoc'). Set to enable ReDoc, leave None to disable.",
+    )
 
     def get_oauth_scopes(self) -> list[str]:
         """Get the OAuth scopes as a list."""

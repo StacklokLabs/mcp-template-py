@@ -9,6 +9,7 @@ A python MCP server template repository.
     - `task lint` for running linters
     - `task typecheck` for running typecheckers
     - `task test` for running tests
+    - `task security` for running security checks
 - Use the taskfile for deployment
     - `task run` for running the server locally
     - `task compose_agent_local` for building and deploying the agent using docker-compose
@@ -30,4 +31,4 @@ A python MCP server template repository.
 ### Test code
 - Use pytest style tests, leveraging pytest-asyncio when appropriate.
 - Unit tests should be in a `tests/` folder co-located with the source code being tested. Unit tests should mock external dependencies.
-- Integration tests should be in `src/tests/integration` and should avoid mocking external dependencies. They can be skipped if requirements like configuration (e.g. API keys) are missing.
+- Integration tests should be in `tests/integration` and should avoid mocking external dependencies. They can be skipped if requirements like configuration (e.g. API keys) are missing.
