@@ -13,12 +13,10 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.responses import RedirectResponse
-from starlette.routing import Mount, Route
+from starlette.routing import Mount
 from starlette.testclient import TestClient
 
 from mcp_template_py.api.mcp_builder import MCPBuilder
-from mcp_template_py.api.oauth_api import OAuthApi
 from mcp_template_py.auth.auth_manager import AuthManager
 from mcp_template_py.auth.mcp_auth_middleware import MCPAuthMiddleware
 from mcp_template_py.auth.token_store import (
@@ -214,33 +212,76 @@ def get_mock_external_refresh_response() -> dict[str, Any]:
 
 
 # =============================================================================
-# MockedOAuthApi for Integration Tests
+# Mocked OAuth App for Integration Tests
 # =============================================================================
 
 
-class MockedOAuthApi(OAuthApi):
-    """OAuthApi subclass that mocks external OAuth for integration testing.
+def create_mocked_oauth_callback_endpoint(
+    token_store: TokenStore, auth_manager: AuthManager
+):
+    """Create a mocked external_callback endpoint for integration testing.
 
-    This class overrides the external_callback method to simulate an external
+    This function creates a FastAPI endpoint that simulates an external
     provider returning with an authorization code, bypassing the actual redirect
     to the external OAuth server.
+
+    Args:
+        token_store: TokenStore instance for accessing pending auth
+        auth_manager: AuthManager instance for generating tokens
+
+    Returns:
+        Async endpoint function for mocked external callback
     """
+    from typing import Annotated
 
-    async def external_callback(self, request):
-        """Override to simulate external provider returning with a code."""
-        params = request.query_params
-        state = params.get("state")
+    from fastapi import Query
+    from fastapi.responses import JSONResponse, RedirectResponse
 
-        if params.get("error") or not state:
-            return await super().external_callback(request)
+    async def mocked_external_callback(
+        state: Annotated[str | None, Query()] = None,
+        code: Annotated[str | None, Query()] = None,
+        error: Annotated[str | None, Query()] = None,
+        error_description: Annotated[str | None, Query()] = None,
+    ) -> RedirectResponse | JSONResponse:
+        """Mocked external callback that bypasses actual external OAuth."""
+        # Handle errors the same way
+        if error or not state:
+            if error:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "error": "external_auth_failed",
+                        "error_description": error_description or error,
+                    },
+                )
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "invalid_request",
+                    "error_description": "state required",
+                },
+            )
 
-        pending = self._token_store.pop_pending_auth(state)
+        pending = token_store.pop_pending_auth(state)
         if not pending:
-            return await super().external_callback(request)
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "invalid_state",
+                    "error_description": "State not found or expired",
+                },
+            )
 
         if datetime.now(timezone.utc) - pending.created_at > timedelta(minutes=10):
-            return await super().external_callback(request)
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "expired",
+                    "error_description": "Authorization request expired",
+                },
+            )
 
+        # Create fake external tokens (no actual HTTP call)
         fake_external_tokens = ExternalTokens(
             access_token="ya29.test_external_access_token",
             token_type="Bearer",
@@ -249,8 +290,9 @@ class MockedOAuthApi(OAuthApi):
             scope="openid email profile",
         )
 
-        mcp_code = self._auth_manager.generate_token()
-        self._token_store.store_auth_code(
+        # Generate our own authorization code
+        mcp_code = auth_manager.generate_token()
+        token_store.store_auth_code(
             AuthCode(
                 external_tokens=fake_external_tokens,
                 client_id=pending.client_id,
@@ -262,34 +304,84 @@ class MockedOAuthApi(OAuthApi):
             code=mcp_code,
         )
 
+        # Redirect back to MCP client with our authorization code
         redirect_params = {"code": mcp_code, "state": pending.mcp_state}
         return RedirectResponse(
             url=f"{pending.redirect_uri}?{urlencode(redirect_params)}"
         )
 
+    return mocked_external_callback
+
+
+def create_mocked_oauth_app(
+    token_store: TokenStore,
+    auth_manager: AuthManager,
+    settings: Settings,
+):
+    """Create a FastAPI OAuth app with mocked external callback.
+
+    This creates an OAuth FastAPI app but replaces the external_callback
+    endpoint with a mocked version that doesn't make actual HTTP calls.
+
+    Args:
+        token_store: TokenStore instance
+        auth_manager: AuthManager instance
+        settings: Settings instance
+
+    Returns:
+        FastAPI app with mocked external callback
+    """
+    from fastapi import APIRouter, FastAPI
+
+    from mcp_template_py.api.oauth_dependencies import (
+        set_auth_manager,
+        set_settings,
+        set_token_store,
+    )
+
+    # Set context variables for dependency injection
+    set_token_store(token_store)
+    set_auth_manager(auth_manager)
+    set_settings(settings)
+
+    # Create a new router with the mocked callback
+    from mcp_template_py.api import oauth_router as oauth_router_module
+
+    router = APIRouter(tags=["OAuth 2.0"])
+
+    # Register all endpoints except external_callback from the original router
+    for route in oauth_router_module.router.routes:
+        if hasattr(route, "path") and route.path != "/oauth/callback":
+            router.routes.append(route)
+
+    # Add the mocked external_callback endpoint
+    mocked_callback = create_mocked_oauth_callback_endpoint(token_store, auth_manager)
+    router.add_api_route(
+        "/oauth/callback",
+        mocked_callback,
+        methods=["GET"],
+        response_model=None,
+        summary="Mocked External OAuth Callback Handler",
+    )
+
+    # Create FastAPI app
+    app = FastAPI(
+        title="MCP OAuth Server (Test)",
+        description="OAuth 2.0 authentication for MCP (with mocked callback)",
+        version="1.0.0",
+        docs_url=None,
+        redoc_url=None,
+    )
+
+    # Include the router
+    app.include_router(router)
+
+    return app
+
 
 # =============================================================================
 # Integration Test App Builders
 # =============================================================================
-
-
-def create_oauth_app(
-    oauth_api: OAuthApi,
-) -> Starlette:
-    """Create a Starlette app with OAuth routes only."""
-    return Starlette(
-        routes=[
-            Route(
-                "/.well-known/oauth-authorization-server",
-                oauth_api.oauth_metadata,
-                methods=["GET"],
-            ),
-            Route("/oauth/register", oauth_api.register_client, methods=["POST"]),
-            Route("/oauth/authorize", oauth_api.authorize, methods=["GET"]),
-            Route("/oauth/callback", oauth_api.external_callback, methods=["GET"]),
-            Route("/oauth/token", oauth_api.token_endpoint, methods=["POST"]),
-        ],
-    )
 
 
 def create_mcp_test_app(
@@ -305,8 +397,11 @@ def create_mcp_test_app(
 
     token_store = InMemoryTokenStore()
     auth_manager = AuthManager(settings)
-    oauth = MockedOAuthApi(token_store, auth_manager, settings)
 
+    # Create mocked OAuth FastAPI app
+    oauth_app = create_mocked_oauth_app(token_store, auth_manager, settings)
+
+    # Create MCP app
     mcp = MCPBuilder.build_mcp(settings)
     mcp_http_app = mcp.streamable_http_app()
 
@@ -322,18 +417,13 @@ def create_mcp_test_app(
         ],
     )
 
+    # Combine OAuth and MCP apps
+    # We need to mount MCP first with a specific path, then OAuth routes
+    # Because OAuth is mounted at "/" it would capture all routes if placed first
     app = Starlette(
         routes=[
-            Route(
-                "/.well-known/oauth-authorization-server",
-                oauth.oauth_metadata,
-                methods=["GET"],
-            ),
-            Route("/oauth/register", oauth.register_client, methods=["POST"]),
-            Route("/oauth/authorize", oauth.authorize, methods=["GET"]),
-            Route("/oauth/callback", oauth.external_callback, methods=["GET"]),
-            Route("/oauth/token", oauth.token_endpoint, methods=["POST"]),
-            Mount("/mcp", app=mcp_app),
+            Mount("/mcp", app=mcp_app),  # Mount MCP app at /mcp
+            Mount("/", app=oauth_app),  # Mount OAuth FastAPI app at root
         ],
     )
 

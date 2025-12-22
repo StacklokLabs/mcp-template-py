@@ -10,7 +10,7 @@ A python MCP server template repository.
     - `task typecheck` for running typecheckers
     - `task test` for running tests
 - Use the taskfile for deployment
-    - `task run_agent` for running the agent locally
+    - `task run` for running the server locally
     - `task compose_agent_local` for building and deploying the agent using docker-compose
 - Use `pydantic` for validating structured data
 - pyproject.toml should be the central place for configuring the project, i.e. linters, typecheckers, testing, etc

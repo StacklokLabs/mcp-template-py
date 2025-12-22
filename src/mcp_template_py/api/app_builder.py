@@ -5,10 +5,10 @@ from typing import Any, cast
 import structlog
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.routing import Mount, Route
+from starlette.routing import Mount
 
 from mcp_template_py.api.mcp_builder import MCPBuilder
-from mcp_template_py.api.oauth_api import OAuthApi
+from mcp_template_py.api.oauth_router import create_oauth_fastapi_app
 from mcp_template_py.auth.auth_manager import AuthManager
 from mcp_template_py.auth.mcp_auth_middleware import MCPAuthMiddleware
 from mcp_template_py.auth.token_store import InMemoryTokenStore
@@ -47,14 +47,8 @@ class AppBuilder:
 
         if settings.enable_oauth:
             AppBuilder.logger.info("Enabling OAuth endpoints")
-            oauth = OAuthApi(token_store, auth_manager, settings)
-            oauth_routes = [
-                Route("/.well-known/oauth-authorization-server", oauth.oauth_metadata),
-                Route("/oauth/register", oauth.register_client, methods=["POST"]),
-                Route("/oauth/authorize", oauth.authorize, methods=["GET"]),
-                Route("/oauth/callback", oauth.external_callback, methods=["GET"]),
-                Route("/oauth/token", oauth.token_endpoint, methods=["POST"]),
-            ]
+            oauth_app = create_oauth_fastapi_app(token_store, auth_manager, settings)
+            oauth_routes = [Mount("/", app=oauth_app)]
             middleware = [
                 Middleware(
                     cast(Any, MCPAuthMiddleware),
