@@ -1,10 +1,12 @@
 name: Claude Code Review
 
 on:
-  pull_request:
+  workflow_call:
+  # Uncomment the following to trigger on PR creation or updates.
+  # pull_request:
     # Only make CC review on PR creation. Later, if we want further checks we can mention it.
     # e.g. @claude please re-review
-    types: [opened]
+    # types: [opened]
     # types: [opened, synchronize]
     # Optional: Only run on specific file changes
     # paths:

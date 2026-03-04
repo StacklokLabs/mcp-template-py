@@ -65,6 +65,7 @@ jobs:
         load: true
         push: false
         cache-from: type=gha
+        cache-to: type=gha,mode=max
         tags: mcp-template-py:latest
 
     - name: Run Trivy vulnerability scanner on image

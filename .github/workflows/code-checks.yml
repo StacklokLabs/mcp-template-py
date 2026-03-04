@@ -14,11 +14,11 @@ jobs:
   code_quality:
     name: Code Quality
     uses: ./.github/workflows/code-quality.yml
-  trivy_security:
-    name: TrivySecurity Scan
-    uses: ./.github/workflows/security.yml
-    needs: image_build
   image_build:
     name: Build Docker Image
     uses: ./.github/workflows/image-build.yml
     needs: code_quality
+  trivy_security:
+    name: TrivySecurity Scan
+    uses: ./.github/workflows/security.yml
+    needs: image_build
