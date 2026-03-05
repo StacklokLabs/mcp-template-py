@@ -39,6 +39,13 @@ jobs:
         id: tag
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Validate tag version
+        run: |
+          if [ -z "${{ steps.tag.outputs.VERSION }}" ]; then
+            echo "::error::VERSION is empty. This workflow must be triggered by a tag push (e.g. v1.0.0)."
+            exit 1
+          fi
+
       - name: Set repository owner lowercase
         id: repo_owner
         run: echo "OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
