@@ -80,7 +80,7 @@ jobs:
 
       - name: Sign container image
         env:
-          REGISTRY: ghcr.io/${{ steps.repo_owner.outputs.OWNER }}/mcp-template-py
+          REGISTRY: ghcr.io/${{ steps.repo_owner.outputs.OWNER }}/PLACEHOLDER
         run: |
           # Sign all tags produced by the metadata action
           echo "${{ steps.meta.outputs.tags }}" | while IFS= read -r tag; do
