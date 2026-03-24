@@ -1,4 +1,4 @@
-# These set of workflows run on every pull request
+# This workflow runs on every pull request
 name: Code Checks
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
     name: Build Docker Image
     uses: ./.github/workflows/image-build.yml
     needs: code_quality
-  trivy_security:
-    name: TrivySecurity Scan
+  grype_security:
+    name: Grype Security Scan
     uses: ./.github/workflows/security.yml
     needs: image_build
