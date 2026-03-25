@@ -11,7 +11,7 @@ A production-ready template for building Python MCP (Model Context Protocol) ser
 - **Testing infrastructure** with pytest and pytest-asyncio
 - **Code quality tools**: ruff (linting/formatting), ty (type checking)
 - **Security scanning**: safety, bandit, pip-audit, cyclonedx-bom
-- **Docker support** with multi-platform builds (amd64/arm64)
+- **Docker support** with multi-platform builds (amd64/arm64) using [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/how-to/use/)
 - **GitHub Actions** for CI/CD, code quality, and automated builds (release not included)
 
 ## Quick Start
@@ -41,9 +41,14 @@ cp .env.example .env
 # Run locally
 task run
 
-# Or with Docker Compose
+# Or with Docker Compose (requires DHI authentication, see below)
 task compose
 ```
+
+> **Note:** Building from source uses [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/how-to/use/)
+> which require authentication to `dhi.io`:
+> 1. Create a Docker Hub account (or use your existing one)
+> 2. Run `docker login dhi.io` (use your Docker Hub credentials)
 
 The server runs on `http://0.0.0.0:8100` by default.
 
