@@ -23,4 +23,4 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:mode=1777,size=64M
-      - /home/appuser/.cache:mode=755,uid=1000,gid=1000,size=64M
+      - /home/nonroot/.cache:mode=755,uid=65532,gid=65532,size=64M

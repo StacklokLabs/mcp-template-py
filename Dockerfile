@@ -1,7 +1,19 @@
-# Build stage: use uv to install dependencies into a virtual environment
-# uv is not included in the final runtime image, mitigating CVE-2026-31812
-# (quinn-proto DoS in uv's QUIC transport layer)
-FROM python:3.13-slim-trixie AS builder
+# Multi-stage Dockerfile for MCP Template Server (Python).
+#
+# Uses DHI (Docker Hardened Images) for both build and runtime:
+#   - dhi.io/python:3.13-alpine3.23-dev (build — includes shell, pip & build tools)
+#   - dhi.io/python:3.13-alpine3.23     (runtime — non-root by default, no shell)
+#
+# Alpine 3.23 chosen for zero known CVEs (Debian variants carry
+# CVE-2025-69720 in ncurses with no upstream fix).
+#
+# DHI images require authentication: docker login dhi.io
+# See https://docs.docker.com/dhi/how-to/use/ for details.
+
+# ---------------------------------------------------------------------------
+# Stage 1: Install dependencies into a virtual environment
+# ---------------------------------------------------------------------------
+FROM dhi.io/python:3.13-alpine3.23-dev@sha256:a630abaff7e0d5a5bf93f619c8976901952c7c3fcf3b26c662c4e75a1dfae44d AS builder
 
 WORKDIR /app
 
@@ -9,16 +21,16 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
-# Install uv from Astral's GitHub Container Registry
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
 
-# Copy project files and install dependencies into the venv
 COPY pyproject.toml uv.lock* README.md ./
 COPY src/ ./src/
 RUN uv sync --no-dev --frozen
 
-# Runtime stage: plain Python image with no uv binary
-FROM python:3.13-slim-trixie
+# ---------------------------------------------------------------------------
+# Stage 2: Production runtime — DHI Python (non-root by default)
+# ---------------------------------------------------------------------------
+FROM dhi.io/python:3.13-alpine3.23@sha256:6b3ad93fb3ad6a6c9855accf861c5e422d928f980e8314b38e2a26d7ab5e1d38
 
 WORKDIR /app
 
@@ -26,20 +38,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/app/.venv/bin:$PATH"
 
-# Copy the installed virtual environment and source from the builder
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
 
-# Create non-root user for security
-RUN groupadd --gid 1000 appgroup && \
-    useradd --uid 1000 --gid appgroup --shell /usr/sbin/nologin --create-home appuser && \
-    chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
-
-# Expose port
 EXPOSE 8100
 
-# Run the application directly with Python (no uv at runtime)
 CMD ["python", "-m", "mcp_template_py"]

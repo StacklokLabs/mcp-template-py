@@ -47,9 +47,10 @@ tasks:
     desc: Run security scanning
     cmds:
       - uv run bandit -r src/
-      - uv run pip-audit
+      # CVE-2026-4539: ReDoS in pygments AdlLexer (dev-only transitive dep, no fix released yet)
+      - uv run pip-audit --ignore-vuln CVE-2026-4539
       - uv run bandit -r src/ -f json -o bandit-report.json || true
-      - uv run pip-audit --format=json --output=pip-audit-report.json || true
+      - uv run pip-audit --ignore-vuln CVE-2026-4539 --format=json --output=pip-audit-report.json || true
     deps:
       - install
 

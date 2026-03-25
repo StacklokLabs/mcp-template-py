@@ -5,6 +5,11 @@ permissions:
 
 on:
   workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
   workflow_dispatch:
   pull_request:
   push:
@@ -18,7 +23,13 @@ jobs:
     name: Build Docker Image
     uses: ./.github/workflows/image-build.yml
     needs: code_quality
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   grype_security:
     name: Grype Security Scan
     uses: ./.github/workflows/security.yml
     needs: image_build
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
