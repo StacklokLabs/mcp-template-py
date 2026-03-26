@@ -24,7 +24,7 @@ dev = [
     "pytest-httpx>=0.36.0",
 ]
 security = [
-    "bandit[toml]>=1.8.0",
+    "bandit[toml]>=1.9.4",
     "pip-audit>=2.7.3",
     "cyclonedx-bom>=6.0.0",
 ]
