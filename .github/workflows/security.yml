@@ -69,6 +69,6 @@ jobs:
       with:
         image: "mcp-template-py:latest"
         output-format: "table"
-        severity-cutoff: "high"
+        severity-cutoff: "medium"
         only-fixed: true
         fail-build: true

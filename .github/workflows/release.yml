@@ -24,6 +24,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      attestations: write
     steps:
       - name: Checkout code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -60,11 +61,15 @@ jobs:
         id: repo_owner
         run: echo "OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
+      - name: Set image repository
+        id: image_repo
+        run: echo "value=ghcr.io/${{ steps.repo_owner.outputs.OWNER }}/PLACEHOLDER" >> $GITHUB_OUTPUT
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ghcr.io/${{ steps.repo_owner.outputs.OWNER }}/PLACEHOLDER
+          images: ${{ steps.image_repo.outputs.value }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -80,6 +85,7 @@ jobs:
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
 
       - name: Build and push container
+        id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
@@ -92,15 +98,39 @@ jobs:
           provenance: true
           sbom: true
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b543b06566a6925bc3a12f1a95b3 # v2.3.0
+        with:
+          subject-name: ${{ steps.image_repo.outputs.value }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
 
-      - name: Sign container image
-        env:
-          REGISTRY: ghcr.io/${{ steps.repo_owner.outputs.OWNER }}/PLACEHOLDER
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+        with:
+          cosign-release: 'v3.0.5'
+
+      - name: Sign container image digest
         run: |
-          # Sign all tags produced by the metadata action
-          echo "${{ steps.meta.outputs.tags }}" | while IFS= read -r tag; do
-            echo "Signing image: $tag"
-            cosign sign -y "$tag"
-          done
+          IMAGE_REF="${{ steps.image_repo.outputs.value }}@${{ steps.build.outputs.digest }}"
+          echo "Signing image digest: $IMAGE_REF"
+          cosign sign -y "$IMAGE_REF"
+
+      - name: Verify container signature
+        run: |
+          IMAGE_REF="${{ steps.image_repo.outputs.value }}@${{ steps.build.outputs.digest }}"
+          echo "Verifying signature for: $IMAGE_REF"
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release\\.yml" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "$IMAGE_REF"
+
+      - name: Verify SLSA provenance attestation
+        run: |
+          IMAGE_REF="${{ steps.image_repo.outputs.value }}@${{ steps.build.outputs.digest }}"
+          echo "Verifying provenance attestation for: $IMAGE_REF"
+          cosign verify-attestation \
+            --type slsaprovenance \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release\\.yml" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "$IMAGE_REF"
