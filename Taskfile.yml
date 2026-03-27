@@ -50,8 +50,6 @@ tasks:
       - uv run bandit -c pyproject.toml -r src/
       # CVE-2026-4539: ReDoS in pygments AdlLexer (dev-only transitive dep, no fix released yet)
       - uv run pip-audit --ignore-vuln CVE-2026-4539
-      - uv run bandit -c pyproject.toml -r src/ -f json -o bandit-report.json
-      - uv run pip-audit --ignore-vuln CVE-2026-4539 --format=json --output=pip-audit-report.json
     deps:
       - install
 
