@@ -1,0 +1,108 @@
+# Automatically creates a patch release when a PR is merged to a release branch.
+# Bumps VERSION and pyproject.toml, commits, tags, and pushes — which triggers
+# release.yml.
+#
+# Uses a GitHub App token (MCP_RELEASE_WORKFLOW_APP_ID + MCP_RELEASE_WORKFLOW_APP_KEY secrets) so that the tag
+# push triggers downstream workflows. GITHUB_TOKEN cannot do this due to a
+# GitHub Actions security restriction.
+#
+# TODO: This is a template repo — uncomment the pull_request trigger and
+# remove the stub trigger below when using this template in a real project.
+name: Patch Release
+
+# on:
+#   pull_request:
+#     types: [closed]
+#     branches:
+#       - "release/**"
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+# TODO: Uncomment concurrency when enabling the real trigger above.
+# concurrency:
+#   group: patch-release-${{ github.event.pull_request.base.ref }}
+#   cancel-in-progress: false
+
+jobs:
+  patch-release:
+    # TODO: Remove this condition when enabling the real trigger above,
+    # and restore: if: github.event.pull_request.merged == true
+    if: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ secrets.MCP_RELEASE_WORKFLOW_APP_ID }}
+          private-key: ${{ secrets.MCP_RELEASE_WORKFLOW_APP_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Determine next patch version
+        id: version
+        run: |
+          BRANCH="${{ github.event.pull_request.base.ref }}"
+          MINOR="${BRANCH#release/}"
+          if [[ ! "$MINOR" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Branch '$BRANCH' does not match release/X.Y pattern"
+            exit 1
+          fi
+
+          LATEST_PATCH=$(git tag --list "v${MINOR}.*" | grep -E "^v${MINOR}\.[0-9]+$" | sed "s/^v${MINOR}\.//" | sort -n | tail -1)
+          if [[ -z "$LATEST_PATCH" ]]; then
+            echo "::error::No existing tags found for v${MINOR}.* — initial releases must use the create-release workflow"
+            exit 1
+          fi
+
+          NEXT_PATCH=$((LATEST_PATCH + 1))
+          NEXT_VERSION="${MINOR}.${NEXT_PATCH}"
+          NEXT_TAG="v${NEXT_VERSION}"
+
+          echo "version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${NEXT_TAG}"         >> "$GITHUB_OUTPUT"
+          echo "::notice::Next patch release: ${NEXT_TAG}"
+
+      - name: Verify tag does not already exist
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if git tag --list "$TAG" | grep -q .; then
+            echo "::error::Tag $TAG already exists locally"
+            exit 1
+          fi
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "::error::Tag $TAG already exists on remote"
+            exit 1
+          fi
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump and verify version
+        uses: ./.github/actions/bump-version
+        with:
+          version: ${{ steps.version.outputs.version }}
+
+      - name: Commit and tag
+        run: |
+          git add VERSION pyproject.toml
+          git commit -m "Release ${{ steps.version.outputs.tag }}"
+          git tag "${{ steps.version.outputs.tag }}"
+
+      - name: Push commit and tag
+        run: |
+          git push origin "${{ github.event.pull_request.base.ref }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+          echo "::notice::Tag ${{ steps.version.outputs.tag }} pushed — release pipeline triggered."

@@ -27,7 +27,17 @@ jobs:
       attestations: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Extract tag version
+        id: tag_version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate VERSION matches tag
+        uses: ./.github/actions/bump-version
+        with:
+          version: ${{ steps.tag_version.outputs.version }}
+          mode: verify-only
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
@@ -45,17 +55,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract tag version
-        id: tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Validate tag version
-        run: |
-          if [ -z "${{ steps.tag.outputs.VERSION }}" ]; then
-            echo "::error::VERSION is empty. This workflow must be triggered by a tag push (e.g. v1.0.0)."
-            exit 1
-          fi
 
       - name: Set repository owner lowercase
         id: repo_owner
@@ -80,7 +79,7 @@ jobs:
             org.opencontainers.image.description=PLACEHOLDER
             org.opencontainers.image.vendor=Stacklok
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.version=${{ steps.tag.outputs.VERSION }}
+            org.opencontainers.image.version=${{ steps.tag_version.outputs.version }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
 
@@ -99,7 +98,7 @@ jobs:
           sbom: true
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@e8998f949152b543b06566a6925bc3a12f1a95b3 # v2.3.0
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-name: ${{ steps.image_repo.outputs.value }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -121,16 +120,39 @@ jobs:
           IMAGE_REF="${{ steps.image_repo.outputs.value }}@${{ steps.build.outputs.digest }}"
           echo "Verifying signature for: $IMAGE_REF"
           cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release\\.yml" \
+            --certificate-identity="https://github.com/${{ github.repository }}/.github/workflows/release.yml@${{ github.ref }}" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
             "$IMAGE_REF"
 
       - name: Verify SLSA provenance attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           IMAGE_REF="${{ steps.image_repo.outputs.value }}@${{ steps.build.outputs.digest }}"
           echo "Verifying provenance attestation for: $IMAGE_REF"
-          cosign verify-attestation \
-            --type slsaprovenance \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/release\\.yml" \
-            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-            "$IMAGE_REF"
+          gh attestation verify "oci://${IMAGE_REF}" \
+            --owner "${{ github.repository_owner }}" \
+            --signer-workflow "${{ github.repository }}/.github/workflows/release.yml" \
+            --source-ref "${{ github.ref }}"
+
+  github-release:
+    needs: release
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Create GitHub Release with auto-generated notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            --verify-tag
