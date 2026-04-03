@@ -1,0 +1,107 @@
+# Manually triggered workflow that creates a release branch, bumps the version
+# in VERSION and pyproject.toml, and pushes a tag — which fires the main
+# release.yml pipeline.
+#
+# Uses a GitHub App token (MCP_RELEASE_WORKFLOW_APP_ID + MCP_RELEASE_WORKFLOW_APP_KEY secrets) so that the tag
+# push triggers downstream workflows. GITHUB_TOKEN cannot do this due to a
+# GitHub Actions security restriction.
+#
+# TODO: This is a template repo — uncomment the workflow_dispatch trigger and
+# remove the stub trigger below when using this template in a real project.
+name: Create Release
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: 'Release version (semver, e.g. 0.1.0)'
+#         required: true
+#         type: string
+#       base_ref:
+#         description: 'Base ref to branch from'
+#         required: false
+#         default: 'main'
+#         type: string
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  create-release:
+    # TODO: Remove this condition when enabling the real trigger above.
+    if: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Validate version input
+        id: vars
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be X.Y.Z semver format (e.g. 0.1.0), got: '$VERSION'"
+            exit 1
+          fi
+          MINOR="${VERSION%.*}"
+          echo "version=$VERSION"                >> "$GITHUB_OUTPUT"
+          echo "release_branch=release/${MINOR}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}"                 >> "$GITHUB_OUTPUT"
+
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        with:
+          app-id: ${{ secrets.MCP_RELEASE_WORKFLOW_APP_ID }}
+          private-key: ${{ secrets.MCP_RELEASE_WORKFLOW_APP_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.base_ref }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Verify release branch does not already exist
+        run: |
+          BRANCH="${{ steps.vars.outputs.release_branch }}"
+          if git ls-remote --heads origin "$BRANCH" | grep -q .; then
+            echo "::error::Branch $BRANCH already exists — bump the patch version or delete the branch first"
+            exit 1
+          fi
+
+      - name: Verify tag does not already exist
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "::error::Tag $TAG already exists"
+            exit 1
+          fi
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release branch
+        run: git checkout -b "${{ steps.vars.outputs.release_branch }}"
+
+      - name: Bump and verify version
+        uses: ./.github/actions/bump-version
+        with:
+          version: ${{ steps.vars.outputs.version }}
+
+      - name: Commit version bump
+        run: |
+          git add VERSION pyproject.toml
+          git commit -m "Release ${{ steps.vars.outputs.tag }}"
+
+      - name: Push release branch
+        run: git push origin "${{ steps.vars.outputs.release_branch }}"
+
+      - name: Push tag
+        run: |
+          git tag "${{ steps.vars.outputs.tag }}"
+          git push origin "${{ steps.vars.outputs.tag }}"
+          echo "::notice::Tag ${{ steps.vars.outputs.tag }} pushed — release pipeline triggered."
