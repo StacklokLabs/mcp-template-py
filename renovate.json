@@ -1,17 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
   ],
-  "recreateWhen": "never",
-  "dependencyDashboard": true,
-  "lockFileMaintenance": {
-    "enabled": true
-  },
-  "packageRules": [
-    {
-      "matchManagers": ["pep621"],
-      "rangeStrategy": "bump"
-    }
-  ]
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 3,
+  "schedule": ["after 1am and before 7am on weekdays"],
+  "timezone": "America/Los_Angeles",
+  "minimumReleaseAge": "3 days"
 }
