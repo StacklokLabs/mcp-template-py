@@ -1,0 +1,25 @@
+# Configuration for GitHub's auto-generated release notes.
+# GitHub reads this file when creating a release with --generate-notes
+# and groups merged PRs into sections based on their labels.
+changelog:
+  categories:
+    - title: "Breaking Changes"
+      labels:
+        - "breaking-change"
+    - title: "Features"
+      labels:
+        - "enhancement"
+        - "feature"
+    - title: "Bug Fixes"
+      labels:
+        - "bug"
+        - "fix"
+    - title: "Security"
+      labels:
+        - "security"
+    - title: "Documentation"
+      labels:
+        - "documentation"
+    - title: "Other Changes"
+      labels:
+        - "*"

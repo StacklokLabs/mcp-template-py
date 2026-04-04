@@ -1,6 +1,6 @@
 # Security Policy
 
-The MCP Template Python community takes security seriously! We appreciate your
+The MCP Template Py community takes security seriously! We appreciate your
 efforts to disclose your findings responsibly and will make every effort to
 acknowledge your contributions.
 
@@ -28,7 +28,7 @@ Contact the team by sending email to
 
 ### Private disclosure processes
 
-The MCP Template Python community asks that all suspected vulnerabilities be
+The MCP Template Py community asks that all suspected vulnerabilities be
 handled in accordance with
 [Responsible Disclosure model](https://en.wikipedia.org/wiki/Responsible_disclosure).
 

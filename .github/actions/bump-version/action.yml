@@ -1,0 +1,41 @@
+name: Bump and Verify Version
+description: >
+  Bumps VERSION and pyproject.toml to the given version, then verifies both
+  files match. When mode is 'verify-only', skips the bump and just asserts
+  the files already contain the expected version.
+
+inputs:
+  version:
+    description: 'Target version string (e.g. 0.2.1)'
+    required: true
+  mode:
+    description: '"bump" to write then verify, "verify-only" to just verify'
+    required: false
+    default: 'bump'
+
+runs:
+  using: composite
+  steps:
+    - name: Bump version in VERSION and pyproject.toml
+      if: inputs.mode == 'bump'
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        echo "$VERSION" > VERSION
+        sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
+
+    - name: Verify version was updated correctly
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        FILE_VERSION=$(tr -d '[:space:]' < VERSION)
+        PYPROJECT_VERSION=$(grep '^version = ' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+
+        if [[ "$FILE_VERSION" != "$VERSION" ]]; then
+          echo "::error::VERSION file contains '$FILE_VERSION', expected '$VERSION'"
+          exit 1
+        fi
+        if [[ "$PYPROJECT_VERSION" != "$VERSION" ]]; then
+          echo "::error::pyproject.toml contains '$PYPROJECT_VERSION', expected '$VERSION'"
+          exit 1
+        fi
