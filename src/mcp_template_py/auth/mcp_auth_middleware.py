@@ -1,109 +1,33 @@
-from datetime import datetime, timezone
+import contextvars
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
-from starlette.types import ASGIApp
-import structlog
 
-from mcp_template_py.auth.auth_manager import AuthManager
-from mcp_template_py.auth.token_store import TokenStore
-from mcp_template_py.auth.token_store.models import ExternalTokens
-from mcp_template_py.settings import Settings
+_current_bearer_token: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "_current_bearer_token", default=None
+)
 
 
-class MCPAuthMiddleware(BaseHTTPMiddleware):
+def get_bearer_token() -> str | None:
+    """Get the Bearer token from the current request context.
+
+    Call this from MCP tools to access the token sent by the client.
+    Returns None if no Bearer token was provided.
     """
-    Authentication middleware for the MCP endpoint.
+    return _current_bearer_token.get()
 
-    This middleware is ONLY attached to the MCP Starlette app,
-    so it never runs on OAuth routes. This is more efficient and explicit
-    than checking the path in every request.
 
-    Responsibilities:
-    1. Extract Bearer token from Authorization header
-    2. Validate token exists and is not expired
-    3. Set external tokens in contextvars for tool access
-    4. Return 401 to trigger OAuth flow if authentication fails
-    """
-
-    def __init__(
-        self,
-        app: ASGIApp,
-        settings: Settings,
-        token_store: TokenStore,
-        auth_manager: AuthManager,
-    ):
-        self._settings = settings
-        self._token_store = token_store
-        self._auth_manager = auth_manager
-        self._logger = structlog.get_logger()
-        super().__init__(app)
+class TokenPassthroughMiddleware(BaseHTTPMiddleware):
+    """Extracts Bearer tokens from request headers and makes them available to MCP tools."""
 
     async def dispatch(self, request: Request, call_next):
-        if not self._settings.enable_oauth:
-            # OAuth is disabled - skip auth and proceed to next middleware
-            self._logger.debug("OAuth disabled - skipping authentication")
-            return await call_next(request)
-
-        # Extract Bearer token from Authorization header
+        token = None
         auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer ") and len(auth_header) > 7:
+            token = auth_header[7:]
 
-        if not auth_header.startswith("Bearer ") or len(auth_header) <= 7:
-            return self._unauthorized_response("Bearer token required")
-
-        token = auth_header[7:]  # Remove "Bearer " prefix
-
-        if not token.startswith(self._settings.minted_token_prefix):
-            # Token does not have our internal prefix - check if passthrough is enabled
-            if not self._settings.allow_token_passthrough:
-                self._logger.info(
-                    "Token passthrough disabled, rejecting external token"
-                )
-                return self._unauthorized_response("Token not found or revoked")
-
-            # Treat as external token - allows upstream (e.g. ToolHive proxy) to pass tokens directly
-            self._logger.info(
-                "Token passthrough: using externally-provided OAuth token"
-            )
-            external_tokens = ExternalTokens(access_token=token, token_type="Bearer")  # nosec B106 - not a password
-            ctx_token = self._auth_manager.set_external_tokens(external_tokens)
-            try:
-                return await call_next(request)
-            finally:
-                # Always reset context to prevent leaks between requests
-                self._auth_manager.reset_external_tokens(ctx_token)
-
-        token_data = self._token_store.get_access_token(token)
-
-        # Check if token exists
-        if not token_data:
-            return self._unauthorized_response("Token not found or revoked")
-
-        # Check if token is expired
-        if datetime.now(timezone.utc) > token_data.expires_at:
-            self._token_store.revoke_access_token(token)
-            return self._unauthorized_response("Token expired")
-
-        # Token is valid - set external tokens in context for tool access
-        ctx_token = self._auth_manager.set_external_tokens(token_data.external_tokens)
+        ctx_token = _current_bearer_token.set(token)
         try:
             return await call_next(request)
         finally:
-            # Always reset context to prevent leaks between requests
-            self._auth_manager.reset_external_tokens(ctx_token)
-
-    def _unauthorized_response(self, message: str) -> JSONResponse:
-        """
-        Return 401 Unauthorized response.
-
-        The WWW-Authenticate header tells MCP clients to initiate OAuth flow.
-        """
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "unauthorized",
-                "error_description": message,
-            },
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+            _current_bearer_token.reset(ctx_token)

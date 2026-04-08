@@ -1,16 +1,5 @@
-from typing import Self
-
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-def parse_comma_separated_list(value: str | list[str]) -> list[str]:
-    """Parse a comma-separated string into a list, or return the list as-is."""
-    if isinstance(value, list):
-        return value
-    if not value or not value.strip():
-        return []
-    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 class Settings(BaseSettings):
@@ -31,73 +20,11 @@ class Settings(BaseSettings):
     server_url: str = Field(
         default="http://localhost:8100", description="Base URL of the server"
     )
-    enable_oauth: bool = Field(
-        default=False, description="Enable OAuth authentication if 'true'"
-    )
-    oauth_client_id: str = Field(
-        default="", description="OAuth client ID for authentication"
-    )
-    oauth_client_secret: str = Field(
-        default="", repr=False, description="OAuth client secret for authentication"
-    )
-    oauth_external_auth_url: str = Field(
-        default="", description="URL for external OAuth authentication"
-    )
-    oauth_external_token_url: str = Field(
-        default="", description="URL for external OAuth token exchange"
-    )
-    oauth_external_scopes: str = Field(
-        default="",
-        description="Comma-separated list of scopes for external OAuth authentication",
-    )
-    minted_token_prefix: str = Field(
-        default="mcp-",
-        description="Prefix for access tokens minted by the MCP, used to distinguish from passthrough tokens",
-    )
-    allow_token_passthrough: bool = Field(
-        default=False,
-        description="Accept external access tokens directly if 'true', otherwise require them to be minted by the MCP",
-    )
-    oauth_docs_url: str | None = Field(
-        default=None,
-        description="URL path for FastAPI Swagger documentation (e.g., '/docs'). Set to enable API docs, leave None to disable.",
-    )
-    oauth_redoc_url: str | None = Field(
-        default=None,
-        description="URL path for FastAPI ReDoc documentation (e.g., '/redoc'). Set to enable ReDoc, leave None to disable.",
-    )
 
-    def get_oauth_scopes(self) -> list[str]:
-        """Get the OAuth scopes as a list."""
-        return parse_comma_separated_list(self.oauth_external_scopes)
-
-    @field_validator("debug", "enable_oauth", "allow_token_passthrough", mode="before")
+    @field_validator("debug", mode="before")
     @classmethod
     def parse_bool(cls, value: str | bool) -> bool:
         """Parse a string or bool value to a boolean."""
         if isinstance(value, bool):
             return value
         return value.lower() in ("true", "1", "yes", "on")
-
-    def get_oauth_redirect_url(self) -> str:
-        """Get the OAuth2 redirect URL based on the server URL."""
-        return f"{self.server_url}/oauth/callback"
-
-    @model_validator(mode="after")
-    def validate_oauth_settings(self) -> Self:
-        """Validate that required OAuth settings are present when OAuth is enabled."""
-        if self.enable_oauth:
-            required_fields = [
-                ("oauth_client_id", "OAuth client ID"),
-                ("oauth_client_secret", "OAuth client secret"),
-                ("oauth_external_auth_url", "OAuth external auth URL"),
-                ("oauth_external_token_url", "OAuth external token URL"),
-            ]
-            missing = [
-                name for field, name in required_fields if not getattr(self, field)
-            ]
-            if missing:
-                raise ValueError(
-                    f"OAuth is enabled but missing required settings: {', '.join(missing)}"
-                )
-        return self
