@@ -16,13 +16,21 @@ async def echo_token(request: Request) -> JSONResponse:
     return JSONResponse({"token": get_bearer_token()})
 
 
+async def raise_error(request: Request) -> JSONResponse:
+    """Test endpoint that raises an exception."""
+    raise RuntimeError("handler error")
+
+
 @pytest.fixture
 def client() -> TestClient:
     app = Starlette(
-        routes=[Route("/test", echo_token)],
+        routes=[
+            Route("/test", echo_token),
+            Route("/error", raise_error),
+        ],
         middleware=[Middleware(cast(Any, TokenPassthroughMiddleware))],
     )
-    return TestClient(app)
+    return TestClient(app, raise_server_exceptions=False)
 
 
 class TestTokenPassthrough:
@@ -45,3 +53,8 @@ class TestTokenPassthrough:
         response = client.get("/test", headers={"Authorization": "Bearer "})
         assert response.status_code == 200
         assert response.json()["token"] is None
+
+    def test_context_reset_after_handler_exception(self, client: TestClient):
+        """Verify context variable is cleaned up even when the handler raises."""
+        client.get("/error", headers={"Authorization": "Bearer leaked-token"})
+        assert get_bearer_token() is None
