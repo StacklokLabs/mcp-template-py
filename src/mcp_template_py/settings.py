@@ -20,8 +20,12 @@ class Settings(BaseSettings):
     server_url: str = Field(
         default="http://localhost:8100", description="Base URL of the server"
     )
+    require_bearer_token: bool = Field(
+        default=True,
+        description="Return 401 for MCP requests without a Bearer token",
+    )
 
-    @field_validator("debug", mode="before")
+    @field_validator("debug", "require_bearer_token", mode="before")
     @classmethod
     def parse_bool(cls, value: str | bool) -> bool:
         """Parse a string or bool value to a boolean."""

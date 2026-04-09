@@ -34,7 +34,10 @@ class AppBuilder:
             AppBuilder.logger.info("MCP session manager stopped")
 
         middleware = [
-            Middleware(cast(Any, TokenPassthroughMiddleware)),
+            Middleware(
+                cast(Any, TokenPassthroughMiddleware),
+                require_bearer_token=settings.require_bearer_token,
+            ),
         ]
 
         routes = [Mount("/", app=mcp_http_app, middleware=middleware)]

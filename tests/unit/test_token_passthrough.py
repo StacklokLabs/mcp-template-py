@@ -23,12 +23,30 @@ async def raise_error(request: Request) -> JSONResponse:
 
 @pytest.fixture
 def client() -> TestClient:
+    """Client with require_bearer_token=False (permissive, original behavior)."""
     app = Starlette(
         routes=[
             Route("/test", echo_token),
             Route("/error", raise_error),
         ],
-        middleware=[Middleware(cast(Any, TokenPassthroughMiddleware))],
+        middleware=[
+            Middleware(cast(Any, TokenPassthroughMiddleware), require_bearer_token=False)
+        ],
+    )
+    return TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.fixture
+def strict_client() -> TestClient:
+    """Client with require_bearer_token=True."""
+    app = Starlette(
+        routes=[
+            Route("/test", echo_token),
+            Route("/error", raise_error),
+        ],
+        middleware=[
+            Middleware(cast(Any, TokenPassthroughMiddleware), require_bearer_token=True)
+        ],
     )
     return TestClient(app, raise_server_exceptions=False)
 
@@ -58,3 +76,23 @@ class TestTokenPassthrough:
         """Verify context variable is cleaned up even when the handler raises."""
         client.get("/error", headers={"Authorization": "Bearer leaked-token"})
         assert get_bearer_token() is None
+
+
+class TestRequireBearerToken:
+    def test_missing_token_returns_401(self, strict_client: TestClient):
+        response = strict_client.get("/test")
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Bearer token required"
+
+    def test_valid_token_passes_through(self, strict_client: TestClient):
+        response = strict_client.get(
+            "/test", headers={"Authorization": "Bearer my-token"}
+        )
+        assert response.status_code == 200
+        assert response.json()["token"] == "my-token"
+
+    def test_non_bearer_auth_returns_401(self, strict_client: TestClient):
+        response = strict_client.get(
+            "/test", headers={"Authorization": "Basic abc123"}
+        )
+        assert response.status_code == 401

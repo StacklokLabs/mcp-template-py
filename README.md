@@ -5,7 +5,7 @@ A production-ready template for building Python MCP (Model Context Protocol) ser
 ## What's Included
 
 - **FastMCP server** with example tool implementation
-- **Token passthrough** — Bearer tokens from MCP clients are available to tools via context
+- **Token passthrough** — Bearer tokens from MCP clients are available to tools via context. Requests without a Bearer token are rejected with 401 by default (`REQUIRE_BEARER_TOKEN=true`); set to `false` for local development
 - **Pydantic** for data validation and type safety
 - **Task automation** via [Taskfile](https://taskfile.dev/) for common operations
 - **Testing infrastructure** with pytest and pytest-asyncio
