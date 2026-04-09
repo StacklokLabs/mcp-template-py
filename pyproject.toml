@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "cachetools>=6.2.4",
+    "cryptography>=46.0.7",  # CVE-2026-39892 - transitive dep via mcp->pyjwt[crypto]
     "fastapi>=0.127.0",
     "mcp>=1.22.0",
     "pydantic>=2.12.4",
