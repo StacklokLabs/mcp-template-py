@@ -8,10 +8,7 @@ from starlette.middleware import Middleware
 from starlette.routing import Mount
 
 from mcp_template_py.api.mcp_builder import MCPBuilder
-from mcp_template_py.api.oauth_router import create_oauth_fastapi_app
-from mcp_template_py.auth.auth_manager import AuthManager
-from mcp_template_py.auth.mcp_auth_middleware import MCPAuthMiddleware
-from mcp_template_py.auth.token_store import InMemoryTokenStore
+from mcp_template_py.auth import TokenPassthroughMiddleware
 from mcp_template_py.settings import Settings
 
 
@@ -22,14 +19,10 @@ class AppBuilder:
     def build_app(settings: Settings | None = None) -> Starlette:
         settings = settings or Settings()
 
-        # build Starlette app with OAuth and MCP endpoints
-        token_store = InMemoryTokenStore()
-        auth_manager = AuthManager(settings)
-
         mcp = MCPBuilder.build_mcp(settings)
         mcp_http_app = mcp.streamable_http_app()
 
-        # Lifespan to properly initialize the MCP session manager and cleanup resources.
+        # Lifespan to properly initialize the MCP session manager.
         # When mounting streamable_http_app() as a sub-app, Starlette doesn't
         # trigger its lifespan, so we must run the session manager explicitly.
         # See: https://github.com/modelcontextprotocol/python-sdk/issues/1467
@@ -37,33 +30,17 @@ class AppBuilder:
         async def lifespan(_app: Starlette) -> AsyncIterator[None]:
             async with mcp.session_manager.run():
                 AppBuilder.logger.info("MCP session manager started")
-                try:
-                    yield
-                finally:
-                    # Close the AuthManager's HTTP client on shutdown
-                    await auth_manager.close()
-                    AppBuilder.logger.info("AuthManager HTTP client closed")
+                yield
             AppBuilder.logger.info("MCP session manager stopped")
 
-        if settings.enable_oauth:
-            AppBuilder.logger.info("Enabling OAuth endpoints")
-            oauth_app = create_oauth_fastapi_app(token_store, auth_manager, settings)
-            oauth_routes = [Mount("/", app=oauth_app)]
-            middleware = [
-                Middleware(
-                    cast(Any, MCPAuthMiddleware),
-                    settings=settings,
-                    token_store=token_store,
-                    auth_manager=auth_manager,
-                ),
-            ]
-        else:
-            AppBuilder.logger.info("Disabling OAuth endpoints")
-            oauth_routes = []
-            middleware = []
+        middleware = [
+            Middleware(
+                cast(Any, TokenPassthroughMiddleware),
+                require_bearer_token=settings.require_bearer_token,
+            ),
+        ]
 
-        # Mount the MCP HTTP app at root - it already defines the /mcp route
-        routes = oauth_routes + [Mount("/", app=mcp_http_app, middleware=middleware)]
+        routes = [Mount("/", app=mcp_http_app, middleware=middleware)]
 
         app = Starlette(
             routes=routes,

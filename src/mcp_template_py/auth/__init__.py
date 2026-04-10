@@ -1,7 +1,9 @@
-from mcp_template_py.auth.auth_manager import AuthManager
-from mcp_template_py.auth.mcp_auth_middleware import MCPAuthMiddleware
+from mcp_template_py.auth.mcp_auth_middleware import (
+    TokenPassthroughMiddleware,
+    get_bearer_token,
+)
 
 __all__ = [
-    "AuthManager",
-    "MCPAuthMiddleware",
+    "TokenPassthroughMiddleware",
+    "get_bearer_token",
 ]
