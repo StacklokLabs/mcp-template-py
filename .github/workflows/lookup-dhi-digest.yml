@@ -5,6 +5,9 @@ name: Lookup DHI Digest
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/lookup-dhi-digest.yml
 
 permissions:
   contents: read
