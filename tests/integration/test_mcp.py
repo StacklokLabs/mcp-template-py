@@ -7,6 +7,7 @@ They require a running server (MCP_SERVER_URL environment variable).
 import os
 
 import pytest
+from mcp.types import TextContent
 
 from tests.integration.conftest import get_mcp_client_session
 
@@ -58,7 +59,9 @@ class TestMCPClient:
             assert result is not None
             assert len(result.content) > 0
 
-            text_contents = [item for item in result.content if hasattr(item, "text")]
+            text_contents = [
+                item for item in result.content if isinstance(item, TextContent)
+            ]
             assert any("Hello, Alice!" in item.text for item in text_contents), (
                 f"Expected greeting not found in response: {[item.text for item in text_contents]}"
             )
