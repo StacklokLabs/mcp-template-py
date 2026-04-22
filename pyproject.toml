@@ -25,7 +25,7 @@ dev = [
 ]
 security = [
     "bandit[toml]>=1.8.0",
-    "pip-audit>=2.7.3",
+    "pip-audit>=2.10.0",
     "cyclonedx-bom>=6.0.0",
     "lxml>=6.1.0",  # CVE-2026-41066 - transitive dep via cyclonedx-bom
 ]

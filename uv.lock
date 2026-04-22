@@ -714,7 +714,7 @@ security = [
     { name = "bandit", extras = ["toml"], specifier = ">=1.8.0" },
     { name = "cyclonedx-bom", specifier = ">=6.0.0" },
     { name = "lxml", specifier = ">=6.1.0" },
-    { name = "pip-audit", specifier = ">=2.7.3" },
+    { name = "pip-audit", specifier = ">=2.10.0" },
 ]
 
 [[package]]
