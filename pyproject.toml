@@ -10,6 +10,7 @@ dependencies = [
     "mcp>=1.22.0",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.2",  # CVE-2026-28684 - transitive dep via pydantic-settings
     "python-multipart>=0.0.26",  # CVE-2026-40347 - transitive dep via fastapi
     "structlog>=25.5.0",
 ]
@@ -26,6 +27,7 @@ security = [
     "bandit[toml]>=1.8.0",
     "pip-audit>=2.7.3",
     "cyclonedx-bom>=6.0.0",
+    "lxml>=6.1.0",  # CVE-2026-41066 - transitive dep via cyclonedx-bom
 ]
 
 [build-system]
