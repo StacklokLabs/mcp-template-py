@@ -6,7 +6,7 @@
   ],
   "rangeStrategy": "bump",
   "prConcurrentLimit": 3,
-  "schedule": ["after 1am and before 7am on weekdays"],
+  "schedule": ["after 1am and before 7am every weekday"],
   "timezone": "America/Los_Angeles",
   "minimumReleaseAge": "3 days"
 }
