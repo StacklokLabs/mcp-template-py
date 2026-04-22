@@ -1,7 +1,17 @@
+# Release pipeline: build multi-arch image, sign with Cosign, attest SLSA
+# provenance, and create a GitHub Release with auto-generated notes.
+#
+# This workflow ships STUBBED so the template repo itself does not publish
+# releases. To enable in your fork:
+#   1. Replace the `on: workflow_dispatch` trigger with the `on: push: tags`
+#      block that is commented out below.
+#   2. Replace every `PLACEHOLDER` in this file (image name, OCI title, OCI
+#      description) with your values.
+#   3. See `docs/release-playbook.md` for the full list of required secrets.
+
 name: Release
 
-# TODO: Replace the placeholder trigger below with the real one when using this template.
-# Replace all occurrences of 'PLACEHOLDER' with the appropriate values.
+# Real trigger — uncomment when enabling releases in your fork:
 # on:
 #   push:
 #     tags:

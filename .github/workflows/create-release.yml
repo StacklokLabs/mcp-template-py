@@ -1,15 +1,21 @@
 # Manually triggered workflow that creates a release branch, bumps the version
-# in VERSION and pyproject.toml, and pushes a tag — which fires the main
-# release.yml pipeline.
+# in VERSION and pyproject.toml, and pushes a tag — which fires release.yml.
 #
-# Uses a GitHub App token (MCP_RELEASE_WORKFLOW_APP_ID + MCP_RELEASE_WORKFLOW_APP_KEY secrets) so that the tag
-# push triggers downstream workflows. GITHUB_TOKEN cannot do this due to a
-# GitHub Actions security restriction.
+# Requires a GitHub App token (secrets MCP_RELEASE_WORKFLOW_APP_ID and
+# MCP_RELEASE_WORKFLOW_APP_KEY). The default GITHUB_TOKEN cannot fire
+# downstream workflows on tag push — GitHub explicitly blocks that to prevent
+# infinite workflow recursion.
 #
-# TODO: This is a template repo — uncomment the workflow_dispatch trigger and
-# remove the stub trigger below when using this template in a real project.
+# This workflow ships STUBBED so the template repo itself does not cut
+# releases. To enable in your fork:
+#   1. Replace the bare `on: workflow_dispatch` trigger below with the richer
+#      one (with inputs) that is commented out.
+#   2. Remove the `if: false` guard on the `create-release` job.
+#   3. See `docs/release-playbook.md` for the full list of required secrets.
+
 name: Create Release
 
+# Real trigger — uncomment when enabling releases in your fork:
 # on:
 #   workflow_dispatch:
 #     inputs:
@@ -29,7 +35,7 @@ permissions: {}
 
 jobs:
   create-release:
-    # TODO: Remove this condition when enabling the real trigger above.
+    # Stub guard — delete this line when enabling the real trigger above.
     if: false
     runs-on: ubuntu-latest
     permissions:

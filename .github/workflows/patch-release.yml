@@ -1,15 +1,23 @@
-# Automatically creates a patch release when a PR is merged to a release branch.
-# Bumps VERSION and pyproject.toml, commits, tags, and pushes — which triggers
-# release.yml.
+# Automatically creates a patch release when a PR is merged to a release/X.Y
+# branch. Bumps VERSION and pyproject.toml, commits, tags, and pushes — which
+# triggers release.yml.
 #
-# Uses a GitHub App token (MCP_RELEASE_WORKFLOW_APP_ID + MCP_RELEASE_WORKFLOW_APP_KEY secrets) so that the tag
-# push triggers downstream workflows. GITHUB_TOKEN cannot do this due to a
-# GitHub Actions security restriction.
+# Requires a GitHub App token (secrets MCP_RELEASE_WORKFLOW_APP_ID and
+# MCP_RELEASE_WORKFLOW_APP_KEY). The default GITHUB_TOKEN cannot fire
+# downstream workflows on tag push — GitHub explicitly blocks that to prevent
+# infinite workflow recursion.
 #
-# TODO: This is a template repo — uncomment the pull_request trigger and
-# remove the stub trigger below when using this template in a real project.
+# This workflow ships STUBBED so the template repo itself does not cut
+# releases. To enable in your fork:
+#   1. Replace the `on: workflow_dispatch` trigger below with the
+#      `on: pull_request` block that is commented out.
+#   2. Uncomment the `concurrency` block.
+#   3. Replace `if: false` with `if: github.event.pull_request.merged == true`.
+#   4. See `docs/release-playbook.md` for the full list of required secrets.
+
 name: Patch Release
 
+# Real trigger — uncomment when enabling releases in your fork:
 # on:
 #   pull_request:
 #     types: [closed]
@@ -20,15 +28,15 @@ on:
 
 permissions: {}
 
-# TODO: Uncomment concurrency when enabling the real trigger above.
+# Uncomment when enabling the real trigger above:
 # concurrency:
 #   group: patch-release-${{ github.event.pull_request.base.ref }}
 #   cancel-in-progress: false
 
 jobs:
   patch-release:
-    # TODO: Remove this condition when enabling the real trigger above,
-    # and restore: if: github.event.pull_request.merged == true
+    # Stub guard — replace with `if: github.event.pull_request.merged == true`
+    # when enabling the real trigger above.
     if: false
     runs-on: ubuntu-latest
     permissions:
