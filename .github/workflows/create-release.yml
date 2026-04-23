@@ -7,7 +7,7 @@
 # infinite workflow recursion.
 #
 # This workflow ships STUBBED so the template repo itself does not cut
-# releases. To enable in your fork:
+# releases. To enable in your own repo:
 #   1. Replace the bare `on: workflow_dispatch` trigger below with the richer
 #      one (with inputs) that is commented out.
 #   2. Remove the `if: false` guard on the `create-release` job.
@@ -15,7 +15,7 @@
 
 name: Create Release
 
-# Real trigger — uncomment when enabling releases in your fork:
+# Real trigger — uncomment when enabling releases in your own repo:
 # on:
 #   workflow_dispatch:
 #     inputs:

@@ -57,7 +57,7 @@ The Dockerfile and CI image builds use [Docker Hardened Images (DHI)](https://do
 docker login dhi.io
 ```
 
-If you fork this template, also see [For fork maintainers](#for-fork-maintainers) below for the GitHub secrets CI needs.
+If you use this template for your own repo, also see [When using this template](#when-using-this-template) below for the GitHub secrets CI needs.
 
 ## Implementing New Tools
 
@@ -160,19 +160,19 @@ task test
 uv run pytest --cov=src/mcp_template_py
 ```
 
-## For Fork Maintainers
+## When Using This Template
 
-When you fork this template for a real project, CI needs a few GitHub Actions secrets to work:
+Whether you created a new repo via "Use this template" or actually forked this one, CI needs a few GitHub Actions secrets to work in your copy:
 
 **Required for image builds and security scans** (`image-build.yml`, `security.yml`):
 - `DOCKERHUB_USERNAME` — your Docker Hub username
 - `DOCKERHUB_TOKEN` — a [Docker Hub access token](https://docs.docker.com/security/for-developers/access-tokens/) with public-read scope
 
 **Required when you enable the release pipeline** (see [docs/release-playbook.md](docs/release-playbook.md)):
-- `MCP_RELEASE_WORKFLOW_APP_ID` — numeric App ID of a GitHub App installed on your fork with Contents: Read/Write
+- `MCP_RELEASE_WORKFLOW_APP_ID` — numeric App ID of a GitHub App installed on your repo with Contents: Read/Write
 - `MCP_RELEASE_WORKFLOW_APP_KEY` — the App's private key (full `.pem` contents)
 
-The release workflows (`release.yml`, `create-release.yml`, `patch-release.yml`) ship **stubbed** so the template itself does not publish artifacts. To enable them in your fork, follow the unstub steps in [docs/release-playbook.md](docs/release-playbook.md).
+The release workflows (`release.yml`, `create-release.yml`, `patch-release.yml`) ship **stubbed** so the template itself does not publish artifacts. To enable them in your copy, follow the unstub steps in [docs/release-playbook.md](docs/release-playbook.md).
 
 ## Contributing
 

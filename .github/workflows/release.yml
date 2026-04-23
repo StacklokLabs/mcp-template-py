@@ -2,7 +2,7 @@
 # provenance, and create a GitHub Release with auto-generated notes.
 #
 # This workflow ships STUBBED so the template repo itself does not publish
-# releases. To enable in your fork:
+# releases. To enable in your own repo:
 #   1. Replace the `on: workflow_dispatch` trigger with the `on: push: tags`
 #      block that is commented out below.
 #   2. Replace every `PLACEHOLDER` in this file (image name, OCI title, OCI
@@ -11,7 +11,7 @@
 
 name: Release
 
-# Real trigger — uncomment when enabling releases in your fork:
+# Real trigger — uncomment when enabling releases in your own repo:
 # on:
 #   push:
 #     tags:
