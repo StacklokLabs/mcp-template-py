@@ -1,17 +1,16 @@
 """
-Defines request and response schemas for MCP tools as Pydantic models.
+Defines response schemas for MCP tools as Pydantic models.
+
+Tool arguments are passed as flat parameters on the tool method (so MCP clients
+see individual fields), not as a single Pydantic model. Responses stay as
+Pydantic models so the MCP output schema is explicit and typed.
 """
 
 from pydantic import BaseModel, Field
 
 __all__ = [
-    "HelloRequest",
     "HelloResponse",
 ]
-
-
-class HelloRequest(BaseModel):
-    name: str = Field(..., description="The name of the user making the request.")
 
 
 class HelloResponse(BaseModel):

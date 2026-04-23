@@ -71,25 +71,22 @@ If you use this template for your own repo, also see [When using this template](
 
 Tools are implemented in [src/mcp_template_py/api/tools.py](src/mcp_template_py/api/tools.py) as methods on the `Tools` class, and registered in [src/mcp_template_py/api/mcp_builder.py](src/mcp_template_py/api/mcp_builder.py):
 
-**1. Define request/response models in [src/mcp_template_py/api/models.py](src/mcp_template_py/api/models.py):**
+**1. Define the response model in [src/mcp_template_py/api/models.py](src/mcp_template_py/api/models.py):**
 
 ```python
 from pydantic import BaseModel, Field
-
-class HelloRequest(BaseModel):
-    name: str = Field(..., description="The name of the user making the request.")
 
 class HelloResponse(BaseModel):
     result: str = Field(..., description="The greeting message.")
 ```
 
-**2. Implement the tool in [src/mcp_template_py/api/tools.py](src/mcp_template_py/api/tools.py):**
+**2. Implement the tool in [src/mcp_template_py/api/tools.py](src/mcp_template_py/api/tools.py) with flat arguments:**
 
 ```python
 class Tools:
-    async def hello(self, request: HelloRequest) -> HelloResponse:
+    async def hello(self, name: str) -> HelloResponse:
         """Say hello to the user."""
-        return HelloResponse(result=f"Hello, {request.name}!")
+        return HelloResponse(result=f"Hello, {name}!")
 ```
 
 **3. Register the tool in [src/mcp_template_py/api/mcp_builder.py](src/mcp_template_py/api/mcp_builder.py):**
@@ -101,8 +98,12 @@ mcp.add_tool(tools.hello)
 
 **Key points:**
 - Tools are async methods on the `Tools` class
-- Docstrings become tool descriptions for MCP clients
-- Use Pydantic models for type-safe input validation and output schemas
+- **Arguments are flat parameters** (e.g. `name: str, age: int`), not a single wrapper
+  Pydantic model. MCP clients see each argument as its own field, not a nested `request`
+  object
+- **Return a Pydantic model** so the tool has an explicit, typed output schema
+- Docstrings become tool descriptions for MCP clients; use `Annotated[..., Field(description=...)]`
+  on a parameter if you want per-argument descriptions in the schema
 - Tools are registered via `mcp.add_tool()` in the MCP builder
 - Use `get_bearer_token()` from `mcp_template_py.auth` to access the client's Bearer token
 
