@@ -2,6 +2,14 @@
 
 A production-ready template for building Python MCP (Model Context Protocol) servers using [FastMCP](https://github.com/jlowin/fastmcp).
 
+> **⚠️ This is a template — it does not do anything useful until you edit it.**
+> Out of the box it ships a single `hello` tool that echoes a greeting. You need to add your
+> own tools, and those tools will almost always need a client (HTTP, SDK, DB driver, etc.)
+> to talk to whatever backend they wrap. See [Implementing New Tools](#implementing-new-tools).
+>
+> This template is designed to run behind [ToolHive](https://github.com/stacklok/toolhive).
+> Auth is delegated to ToolHive — see [Authentication](#authentication).
+
 ## What's Included
 
 - **FastMCP server** with an example tool implementation
@@ -97,6 +105,26 @@ mcp.add_tool(tools.hello)
 - Use Pydantic models for type-safe input validation and output schemas
 - Tools are registered via `mcp.add_tool()` in the MCP builder
 - Use `get_bearer_token()` from `mcp_template_py.auth` to access the client's Bearer token
+
+## Authentication
+
+This template does not implement its own auth server. It expects to run behind
+[ToolHive](https://github.com/stacklok/toolhive), which handles identity, token
+validation, and policy. To get auth working, configure the auth server in ToolHive — see
+the [ToolHive authentication docs](https://docs.stacklok.com/toolhive/concepts/auth-framework).
+
+What this server does is **passthrough**: it takes the `Authorization: Bearer <token>`
+header that ToolHive forwards and makes the token available to your tools so they can
+forward it to whatever upstream API they call.
+
+```python
+from mcp_template_py.auth import get_bearer_token
+
+token = get_bearer_token()  # token forwarded by ToolHive
+```
+
+For local development without ToolHive, set `REQUIRE_BEARER_TOKEN=false` to skip the
+401-on-missing-token check.
 
 ## Task Commands
 
