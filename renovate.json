@@ -8,5 +8,13 @@
   "prConcurrentLimit": 3,
   "schedule": ["after 1am and before 7am every weekday"],
   "timezone": "America/Los_Angeles",
-  "minimumReleaseAge": "3 days"
+  "minimumReleaseAge": "3 days",
+  "packageRules": [
+    {
+      "description": "DHI images live on dhi.io and require authentication; Renovate cannot introspect the registry without credentials. Pin Dockerfile bumps manually after verifying with docker pull.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["dhi.io/**"],
+      "enabled": false
+    }
+  ]
 }

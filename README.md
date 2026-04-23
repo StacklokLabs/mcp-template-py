@@ -4,15 +4,16 @@ A production-ready template for building Python MCP (Model Context Protocol) ser
 
 ## What's Included
 
-- **FastMCP server** with example tool implementation
+- **FastMCP server** with an example tool implementation
 - **Token passthrough** — Bearer tokens from MCP clients are available to tools via context. Requests without a Bearer token are rejected with 401 by default (`REQUIRE_BEARER_TOKEN=true`); set to `false` for local development
 - **Pydantic** for data validation and type safety
 - **Task automation** via [Taskfile](https://taskfile.dev/) for common operations
 - **Testing infrastructure** with pytest and pytest-asyncio
 - **Code quality tools**: ruff (linting/formatting), ty (type checking)
-- **Security scanning**: safety, bandit, pip-audit, cyclonedx-bom
-- **Docker support** with multi-platform builds (amd64/arm64) using [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/how-to/use/)
-- **GitHub Actions** for CI/CD, code quality, and automated builds (release not included)
+- **Security scanning**: bandit, pip-audit, cyclonedx-bom (SBOM), Grype (container + filesystem)
+- **Hardened containers** built on [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/) — multi-arch (amd64/arm64)
+- **Release pipeline** (shipped as stubs): Cosign signing, SLSA provenance attestation, GitHub Releases with auto-generated notes
+- **GitHub Actions** for CI/CD, code quality, and automated builds
 
 ## Quick Start
 
@@ -45,12 +46,18 @@ task run
 task compose
 ```
 
-> **Note:** Building from source uses [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/how-to/use/)
-> which require authentication to `dhi.io`:
-> 1. Create a Docker Hub account (or use your existing one)
-> 2. Run `docker login dhi.io` (use your Docker Hub credentials)
-
 The server runs on `http://0.0.0.0:8100` by default.
+
+### DHI authentication
+
+The Dockerfile and CI image builds use [Docker Hardened Images (DHI)](https://docs.docker.com/dhi/). DHI is **free** (Community tier, Apache 2.0) but pulls from `dhi.io` require authentication with a Docker Hub account:
+
+```bash
+# A free Docker Hub account works — no paid subscription required
+docker login dhi.io
+```
+
+If you use this template for your own repo, also see [When using this template](#when-using-this-template) below for the GitHub secrets CI needs.
 
 ## Implementing New Tools
 
@@ -102,6 +109,8 @@ mcp.add_tool(tools.hello)
 | `task format` | Format code and fix lint issues |
 | `task typecheck` | Run ty type checker |
 | `task test` | Run pytest tests |
+| `task security` | Run bandit + pip-audit |
+| `task sbom` | Generate a CycloneDX SBOM |
 | `task check` | Run all checks (lint, typecheck, test, security) |
 
 ## Project Structure
@@ -137,10 +146,11 @@ Configuration is managed through environment variables. Copy `.env.example` to `
 | `MCP_HOST` | `0.0.0.0` | Host for the MCP server to listen on |
 | `MCP_PORT` | `8100` | Port for the MCP server to listen on |
 | `SERVER_URL` | `http://localhost:8100` | Base URL of the server |
+| `REQUIRE_BEARER_TOKEN` | `true` | Reject requests without a Bearer token |
 
 ## Testing
 
-**Note**: Integration tests (`tests/integration/`) require the MCP server to be running (`task run` or `task compose`) and will be skipped if unreachable.
+Integration tests (`tests/integration/`) require the MCP server to be running (`task run` or `task compose`) and will be skipped if unreachable.
 
 ```bash
 # Run all tests
@@ -150,6 +160,28 @@ task test
 uv run pytest --cov=src/mcp_template_py
 ```
 
+## When Using This Template
+
+Whether you created a new repo via "Use this template" or actually forked this one, CI needs a few GitHub Actions secrets to work in your copy:
+
+**Required for image builds and security scans** (`image-build.yml`, `security.yml`):
+- `DOCKERHUB_USERNAME` — your Docker Hub username
+- `DOCKERHUB_TOKEN` — a [Docker Hub access token](https://docs.docker.com/security/for-developers/access-tokens/) with public-read scope
+
+**Required when you enable the release pipeline** (see [docs/release-playbook.md](docs/release-playbook.md)):
+- `MCP_RELEASE_WORKFLOW_APP_ID` — numeric App ID of a GitHub App installed on your repo with Contents: Read/Write
+- `MCP_RELEASE_WORKFLOW_APP_KEY` — the App's private key (full `.pem` contents)
+
+The release workflows (`release.yml`, `create-release.yml`, `patch-release.yml`) ship **stubbed** so the template itself does not publish artifacts. To enable them in your copy, follow the unstub steps in [docs/release-playbook.md](docs/release-playbook.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, PR conventions, and the DCO sign-off requirement.
+
+## Security
+
+To report a vulnerability, please use the GitHub Security Advisory flow described in [SECURITY.md](SECURITY.md) — do not file a public issue.
+
 ## License
 
-See [LICENSE](LICENSE) for details.
+[Apache 2.0](LICENSE).

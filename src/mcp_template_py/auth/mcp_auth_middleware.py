@@ -32,9 +32,7 @@ class TokenPassthroughMiddleware(BaseHTTPMiddleware):
             token = auth_header[7:]
 
         if self.require_bearer_token and token is None:
-            return JSONResponse(
-                {"detail": "Bearer token required"}, status_code=401
-            )
+            return JSONResponse({"detail": "Bearer token required"}, status_code=401)
 
         ctx_token = _current_bearer_token.set(token)
         try:

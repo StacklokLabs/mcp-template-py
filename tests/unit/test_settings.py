@@ -10,7 +10,8 @@ class TestSettingsDefaults:
         assert settings.server_url == "http://localhost:8100"
 
     def test_debug_parsed_from_string(self):
-        settings = Settings(debug="true")  # type: ignore[arg-type]  # pydantic coerces via validator
+        # pydantic-settings coerces string env values via validator
+        settings = Settings.model_validate({"debug": "true"})
         assert settings.debug is True
 
     def test_debug_parsed_from_bool(self):

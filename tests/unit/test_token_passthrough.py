@@ -30,7 +30,9 @@ def client() -> TestClient:
             Route("/error", raise_error),
         ],
         middleware=[
-            Middleware(cast(Any, TokenPassthroughMiddleware), require_bearer_token=False)
+            Middleware(
+                cast(Any, TokenPassthroughMiddleware), require_bearer_token=False
+            )
         ],
     )
     return TestClient(app, raise_server_exceptions=False)
@@ -92,7 +94,5 @@ class TestRequireBearerToken:
         assert response.json()["token"] == "my-token"
 
     def test_non_bearer_auth_returns_401(self, strict_client: TestClient):
-        response = strict_client.get(
-            "/test", headers={"Authorization": "Basic abc123"}
-        )
+        response = strict_client.get("/test", headers={"Authorization": "Basic abc123"})
         assert response.status_code == 401
