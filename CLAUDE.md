@@ -2,6 +2,28 @@
 
 A python MCP server template repository.
 
+## Rules index
+
+Detailed conventions live in `.claude/rules/` and auto-load when you
+touch matching files. The summary below points at the source of truth:
+
+- `.claude/rules/python-style.md` — tooling (`uv`, `ruff`, `ty`),
+  structlog logging, naming, docstrings, error handling, FastAPI and
+  MCP patterns. Loads for `**/*.py`.
+- `.claude/rules/python-types.md` — strict typing: no `Any`, no
+  untyped dicts, decision tree for `Pydantic` / `TypedDict` /
+  `dataclass`, boundary parsing, `str Enum` for discriminators. Loads
+  for `**/*.py`.
+- `.claude/rules/python-testing.md` — pytest layout, fixtures,
+  parametrize, mock-at-I/O-only, no-network-in-unit-tests, async,
+  FastAPI/MCP test patterns. Loads for test files.
+- `.claude/rules/test-quality.md` — 11-rule rubric used by code
+  reviewers (human and agent) to evaluate test design. Loads for
+  test files.
+
+When the rules below conflict with anything in `.claude/rules/`, the
+rule file wins.
+
 ## Technical considerations
 - Use uv as package manager. `uv add <package>` for adding a package. `uv add <package> --dev` for development packages for linting and testing
 - Use the taskfile for running linting and formatting
