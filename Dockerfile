@@ -13,7 +13,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Install dependencies into a virtual environment
 # ---------------------------------------------------------------------------
-FROM dhi.io/python:3.13-alpine3.23-dev@sha256:c13970a65d92df51053ffbc9fb2696b694078e0c8f3aa7e9de01e91d810c2de7 AS builder
+FROM dhi.io/python:3.13-alpine3.23-dev@sha256:2932baee9e95d21b4baf7e898a632fa1bf1a8b6fb632d008c525fa456b3aeca2 AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ RUN uv sync --no-dev --frozen
 # ---------------------------------------------------------------------------
 # Stage 2: Production runtime — DHI Python (non-root by default)
 # ---------------------------------------------------------------------------
-FROM dhi.io/python:3.13-alpine3.23@sha256:904d8d2f5ccf6a2ebb63ca1c7a43aa0bafdeb03dae72f1174a82cc134bc530b0
+FROM dhi.io/python:3.13-alpine3.23@sha256:5b478d05c5b518d730a958352465e43eaa920416fa14468c5b59509713819062
 
 WORKDIR /app
 
