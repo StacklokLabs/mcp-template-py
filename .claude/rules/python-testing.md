@@ -2,8 +2,7 @@
 paths:
   - "**/tests/**/*.py"
   - "**/test_*.py"
-  - "**/*_test.py"
-description: Pytest patterns — layout, fixtures, mocking discipline, no-network rule, async. Quality rubric in test-quality.md.
+description: Pytest patterns — layout, fixtures, mocking discipline, no-network rule, async. Quality rubric in test-quality.md. Style/tooling in python-style.md; typing rules in python-types.md.
 ---
 
 # Python Testing
@@ -12,14 +11,14 @@ How to **write** a test. The rubric for evaluating one lives in `test-quality.md
 
 ## Layout
 
-Tests mirror `src/mcp_template_py/`:
+Tests mirror `src/<package_name>/`. Target layout (add directories as the suite grows):
 
 ```
 tests/
-  conftest.py
+  conftest.py      # top-level shared fixtures (add when needed)
   unit/            # fast, no network, no real I/O beyond tmp_path
   integration/     # real services; skips cleanly if config missing
-  fixtures/        # recorded payloads, golden files
+  fixtures/        # recorded payloads, golden files (add when needed)
 ```
 
 - `conftest.py` at every level that needs shared fixtures.
@@ -38,7 +37,7 @@ tests/
   @pytest.fixture
   def tmp_settings(tmp_path: Path) -> Iterator[Settings]:
       env_file = tmp_path / ".env"
-      env_file.write_text("MCP_AUTH_MODE=passthrough\n")
+      env_file.write_text("REQUIRE_BEARER_TOKEN=false\n")
       yield Settings(_env_file=env_file)
   ```
 
@@ -90,10 +89,11 @@ Integration tests live in `tests/integration/` and skip cleanly when config is m
 - `asyncio_mode = "auto"` is set — `async def test_...` just works, no decorator needed.
 - Async fixtures are `async def`. Use `AsyncMock(spec=Foo)` for async collaborators.
 - Don't mix sync and async assertions in the same test.
+- `asyncio_default_fixture_loop_scope = "function"` is set in `pyproject.toml`. If you widen an async fixture's scope (`scope="module"` / `"session"`), match it with `loop_scope=...` on the fixture or you'll hit `Future attached to a different loop` at runtime.
 
 ## FastAPI tests
 
-- `fastapi.testclient.TestClient` for sync style, `httpx.AsyncClient(app=app)` for async.
+- `fastapi.testclient.TestClient` for sync style, `httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")` for async (httpx 0.28 removed the `app=` shortcut).
 - Override deps in a fixture: `app.dependency_overrides[real] = fake`; clear on teardown.
 - Assert status code AND body shape — a 200-with-error-envelope passes a status-only assertion.
 

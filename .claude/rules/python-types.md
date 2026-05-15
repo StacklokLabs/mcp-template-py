@@ -1,7 +1,7 @@
 ---
 paths:
   - "**/*.py"
-description: Strict typing — no Any, no untyped dicts, decision tree for TypedDict/dataclass/Pydantic, boundary parsing, str Enum for discriminators.
+description: Strict typing — no Any, no untyped dicts, decision tree for TypedDict/dataclass/Pydantic, boundary parsing, str Enum for discriminators. Style/tooling in python-style.md; test-writing patterns in python-testing.md.
 ---
 
 # Python Type Strictness
@@ -10,11 +10,11 @@ The goal: any signature you read tells you exactly what flows through it. Untype
 
 ## Hard rules
 
-1. **Every parameter and return value is typed.** No exceptions.
-2. **No `Any` unless there's no other option.** When you use one, comment on the same line: `# any: <reason>`. Treat it like `# noqa` — admissible, but visible.
+1. **Every parameter and return value in non-test code is typed.** Test functions may omit return type annotations (see test-quality.md, Rule 11).
+2. **Every `Any` requires an explanation.** Add `# any: <reason>` on the same line. This is a *reviewer-enforced* convention — `ty` and `ruff` do not recognize it; it exists so a human reviewer can immediately see why each `Any` is justified. An unexplained `Any` is a blocker.
 3. **No untyped `dict` / `list` / `tuple` / `set`.** `dict[str, int]` is fine; `dict` or `dict[str, Any]` is not — use `TypedDict`, `dataclass`, or `BaseModel`.
 4. **No `**kwargs: Any` or `*args: Any`.** If a signature is that variadic, split it or accept a typed `TypedDict`.
-5. **`task typecheck` clean is a merge gate.** A `# type: ignore[code]` requires a reason comment.
+5. **`task typecheck` clean is a merge gate.** A `# ty: ignore[rule-name]` (e.g. `# ty: ignore[unresolved-import]`) requires a reason comment. See https://docs.astral.sh/ty/suppression/.
 6. **No bare string literals for discriminators.** Use `str Enum` — see below.
 
 ## Decision tree
@@ -63,7 +63,7 @@ class AuthContext:
 
 ## Boundary parsing
 
-I/O produces loose data (`json.loads` → `dict[str, object]`, env → `Mapping[str, str]`). That's fine **inside the boundary function**. Before the data crosses a function boundary, parse it into a typed model.
+I/O produces loose data (`json.loads` returns `Any`; env vars are `Mapping[str, str]`). That's fine **inside the boundary function**. Before the data crosses a function boundary, parse it into a typed model.
 
 ```python
 # OK
@@ -108,7 +108,7 @@ if config.auth_mode is AuthMode.PASSTHROUGH: ...
 
 ## Tests are typed too
 
-Test files run through `ty`. Fixtures have return types. Mocks declare what they're mocking — `Mock(spec=Foo)` / `AsyncMock(spec=Foo)`. See `test-quality.md` Rule 11.
+Test files run through `ty`. Fixtures have return types. Mocks declare what they're mocking — `Mock(spec=Foo)` / `AsyncMock(spec=Foo)`. See `test-quality.md#rule-11--type-checked-tests`.
 
 ## Acceptable `Any` cases
 

@@ -2,8 +2,7 @@
 paths:
   - "**/tests/**/*.py"
   - "**/test_*.py"
-  - "**/*_test.py"
-description: Test quality rubric — 11 rules reviewers apply to judge test design and assertion strength.
+description: Test quality rubric — 11 rules reviewers apply to judge test design and assertion strength. Patterns for writing tests in python-testing.md; style/tooling in python-style.md; typing rules in python-types.md.
 ---
 
 # Test Quality Rubric
@@ -18,12 +17,12 @@ When a rule outcome feels ambiguous, return to these:
 2. **Tests must validate behavior users care about** — MCP tool call, HTTP request, public API. Coverage of internal state creates false confidence: green tests while real behavior breaks.
 3. **Tests must be a safety net for refactors.** If a behavior-preserving refactor forces tests to change, the tests were coupled to implementation, not behavior.
 
-**Findings are conversation starters, not vetoes.** A `blocker:` flags a risk for explicit discussion. The author can defend the choice, the reviewer can approve through it, or both can agree to close the gap. What's NOT valid is silently letting the risk slide.
-
 ## Outcomes & severity
 
 - `✅` passes / `❌` fails (Finding) / `—` not applicable (justify briefly).
 - `blocker:` must resolve before merge / `suggestion:` non-blocking / `question:` clarification. **No nitpicks** — drop purely stylistic concerns.
+
+A `blocker:` is a hard stop, not a discussion opener. The author can defend the choice and the reviewer can lift the block, but no `blocker:` is left unresolved at merge.
 
 ## The 11 rules
 
@@ -43,7 +42,7 @@ Does the PR add a new top-level fixture when an existing one would serve? Reuse 
 - **Severity:** `blocker:`. Cleared by parametrizing under the existing fixture, or naming a concrete divergence that requires separation.
 
 ### Rule 4 — Framework helper reuse
-Hand-rolling polling, HTTP mocking, or assertions when a helper exists in `conftest.py` / `tests/helpers/` is how subtle test bugs ship — wrong sentinel, missing retry, off-by-one.
+Hand-rolling polling, HTTP mocking, or assertions when a helper exists in `conftest.py` (any level) is how subtle test bugs ship — wrong sentinel, missing retry, off-by-one.
 - **❌ when:** a helper exists for the work being done by hand.
 - **Severity:** `blocker:`.
 
@@ -87,6 +86,6 @@ Tests read deterministically. Polling / sleeps / retries belong in named helpers
 - **Severity:** `blocker:`. Cleared by extracting to a helper named for the wait condition (`poll_until_status_ready`, not `wait_500ms`).
 
 ### Rule 11 — Type-checked tests
-Tests run through `ty`. Fixtures have return types. Mocks use `Mock(spec=Foo)` / `AsyncMock(spec=Foo)` so attribute typos fail at construction. No `Any`, no untyped fixture parameters.
-- **❌ when:** the test file fails type checking, a fixture/test has untyped parameters or return type, or `Mock()` is constructed without `spec=`.
-- **Severity:** `suggestion:` for missing return types on individual test functions; `blocker:` when the file fails type checking or constructs unspecced Mocks for the unit under test.
+Tests run through `ty`. Fixtures have return types. Mocks use `Mock(spec=Foo)` / `AsyncMock(spec=Foo)` so attribute typos fail at construction. No `Any` without an `# any: <reason>` comment (see `python-types.md`, Hard Rule 2). Untyped fixture *parameters* are a blocker; test-function return types may be omitted (test bodies don't return values).
+- **❌ when:** the test file fails type checking, a fixture has untyped parameters or return type, a test has untyped parameters, or `Mock()` is constructed without `spec=`.
+- **Severity:** `blocker:` when the file fails type checking, fixtures lack types, or unspecced Mocks stand in for the unit under test. `suggestion:` for missing return-type annotations on individual test functions.

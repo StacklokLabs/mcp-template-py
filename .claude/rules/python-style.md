@@ -8,6 +8,8 @@ description: Python tooling, logging, naming, error handling, FastAPI/MCP patter
 
 PEP 8 / 257 / 484 with the deltas below.
 
+> **Template note.** This is a template repo. Names like `<PackageError>` and paths like `src/<package_name>/` are placeholders — substitute your actual package name when forking.
+
 ## Tooling
 
 - **`uv` only.** `uv add` (or `uv add --dev`), `uv run`, `uv sync`. Never pip/poetry/conda.
@@ -41,8 +43,8 @@ Every function and method. PEP 257. One-liner for trivial getters; multi-line wh
 ## Error handling
 
 - No bare `except:` or `except BaseException:`. Catch the narrowest type that means something.
-- Never silently swallow. Either log at WARNING with `exc_info=True` and comment why continuing is safe, or use `contextlib.suppress(SpecificError)` for genuinely-anticipated no-action exceptions.
-- Define a small per-package exception hierarchy (`McpTemplateError` → narrower subclasses). No bare `Exception` / `RuntimeError`.
+- Never silently swallow. Inside an `except` block, prefer `log.exception("event", ...)` — structlog auto-attaches the active exception. Use `contextlib.suppress(SpecificError)` for genuinely-anticipated no-action exceptions, with a comment why continuing is safe.
+- Define a small per-package exception hierarchy (`<PackageError>` → narrower subclasses). No bare `Exception` / `RuntimeError`.
 - Cross module boundaries with `raise NewError(...) from err`.
 - **Never put secrets, tokens, or PII in exception messages** — they end up in logs and tracebacks.
 
@@ -56,7 +58,6 @@ Every function and method. PEP 257. One-liner for trivial getters; multi-line wh
 
 - stdlib / third-party / first-party, blank-line separated. ruff's `I` rule enforces it.
 - Absolute imports inside the package; relative imports max one level deep. No wildcards.
-- `from __future__ import annotations` at the top of every module.
 
 ## Function signatures
 
@@ -69,16 +70,16 @@ Every function and method. PEP 257. One-liner for trivial getters; multi-line wh
 - Pydantic models for every request/response body. Never `dict` or `Any` — the OpenAPI schema is part of the contract.
 - Dependencies via `Depends(...)`. `app.dependency_overrides[real] = fake` is the test seam.
 - Explicit status codes (`status_code=201`); errors raise `HTTPException` with a specific code.
-- Async handlers unless the work is genuinely CPU-bound — a sync handler in an async app blocks the worker.
+- Prefer `async def` handlers for I/O-bound work. FastAPI runs sync `def` handlers in an anyio threadpool — fine for occasional CPU work, but the threadpool defaults to ~40 workers, so a sync handler that blocks on I/O caps concurrent requests at that ceiling. Async handlers don't have the cap.
 
 ## MCP server
 
 - **Tool functions are thin.** Validate input via Pydantic, call into the service layer, return a typed response. No business logic.
 - **Tool docstrings are part of the API** — the MCP client surfaces them to users and LLMs. Name inputs, output shape, side effects.
-- **Auth lives in `src/mcp_template_py/auth/`.** Never inline auth checks in tool functions.
+- **Auth lives in `src/<package_name>/auth/`.** Never inline auth checks in tool functions.
 - **Settings via `pydantic-settings`** in `settings.py`, loaded once, injected via `Depends`. No scattered `os.environ.get`.
 
 ## Security
 
 - No credentials in code, tests, or committed config. `.env.example` for the schema, `.env` (gitignored) for real values.
-- `task security` (bandit + pip-audit) must pass. Suppress a bandit finding only with `# nosec B<id>  # <reason>` naming the specific reason.
+- `task security` (bandit + pip-audit) must pass. Suppress a bandit finding only with `# nosec B<id> - <reason>`. Example: `subprocess.run(cmd, check=True)  # nosec B603 - cmd is a hard-coded list, no shell interpolation`.
