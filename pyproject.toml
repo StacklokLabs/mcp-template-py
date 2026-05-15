@@ -11,7 +11,7 @@ dependencies = [
     "pydantic>=2.13.2",
     "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.2",  # CVE-2026-28684 - transitive dep via pydantic-settings
-    "python-multipart>=0.0.26",  # CVE-2026-40347 - transitive dep via fastapi
+    "python-multipart>=0.0.27",  # GHSA-pp6c-gr5w-3c5g - transitive dep via fastapi and mcp
     "structlog>=25.5.0",
 ]
 
@@ -28,6 +28,8 @@ security = [
     "pip-audit>=2.10.0",
     "cyclonedx-bom>=7.3.0",
     "lxml>=6.1.0",  # CVE-2026-41066 - transitive dep via cyclonedx-bom
+    "pip>=26.1",  # GHSA-jp4c-xjxw-mgf9 - transitive dep via pip-audit->pip-api
+    "urllib3>=2.7.0",  # GHSA-mf9v-mfxr-j63j, GHSA-qccp-gfcp-xxvc - transitive dep via pip-audit->cachecontrol->requests
 ]
 
 [build-system]
